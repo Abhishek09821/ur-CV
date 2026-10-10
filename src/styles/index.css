@@ -914,138 +914,419 @@ body {
 }
 
 /* ========================================
-   LAYOUT: Resume Preview
+   LAYOUT: Resume Preview & Official Amity Template
    ======================================== */
 .resume-preview {
   width: 210mm;
   min-height: 297mm;
-  background: white;
+  background: #FFFFFF;
   box-shadow: var(--shadow-xl);
   border: var(--border-heavy) solid var(--border-color);
-  padding: 20mm;
+  padding: 12mm 15mm;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 11pt;
-  line-height: 1.4;
-  color: #000;
+  font-size: 10.5pt;
+  line-height: 1.35;
+  color: #111111;
   position: relative;
   transform-origin: top center;
+  box-sizing: border-box;
 }
 
-.resume-preview .resume-header {
-  text-align: center;
-  border-bottom: 2px solid #000;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-  position: relative;
-}
-
-.resume-preview .resume-photo {
-  width: 90px;
-  height: 110px;
-  object-fit: cover;
-  border: 1px solid #000;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.resume-preview .resume-name {
-  font-size: 18pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-}
-
-.resume-preview .resume-contact {
-  font-size: 9pt;
-  color: #333;
+.preview-empty {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
+  background: #FFFDF9;
 }
 
-.resume-preview .resume-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 5px;
-}
-
-.resume-preview .resume-links a {
-  color: #0066CC;
-  text-decoration: none;
-  font-size: 9pt;
-}
-
-.resume-preview .resume-section {
-  margin-bottom: 12px;
-}
-
-.resume-preview .resume-section-title {
-  font-size: 12pt;
-  font-weight: 700;
-  text-transform: uppercase;
-  border-bottom: 1px solid #000;
-  padding-bottom: 3px;
-  margin-bottom: 8px;
-}
-
-.resume-preview .resume-entry {
-  margin-bottom: 8px;
-}
-
-.resume-preview .resume-entry-header {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-}
-
-.resume-preview .resume-entry-sub {
-  font-style: italic;
-  color: #444;
-  font-size: 10pt;
-}
-
-.resume-preview .resume-entry-bullets {
-  list-style: disc;
-  padding-left: 20px;
-  font-size: 10pt;
-}
-
-.resume-preview .resume-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.resume-preview .resume-skill-tag {
-  font-size: 10pt;
-}
-
-.resume-preview .resume-declaration {
-  margin-top: 20px;
-  font-size: 9pt;
-  font-style: italic;
-  color: #555;
-}
-
-/* Placeholder state */
 .preview-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  min-height: 480px;
   text-align: center;
-  color: var(--text-muted);
   padding: var(--space-2xl);
+  border: 2px dashed #0C2340;
+  background: #FFFFFF;
+  width: 100%;
 }
 
-.preview-placeholder .placeholder-icon {
-  font-size: 4rem;
+.placeholder-crest {
+  font-size: 3.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+.placeholder-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #0C2340;
+  margin-bottom: var(--space-xs);
+}
+
+.placeholder-subtitle {
+  font-family: var(--font-body);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 380px;
   margin-bottom: var(--space-lg);
+}
+
+.placeholder-tags {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.placeholder-tags span {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--bg-accent-yellow);
+  color: #000;
+  padding: 3px 8px;
+  border: 1px solid #000;
+  font-weight: 600;
+}
+
+/* ---------- Amity Branded Template Document ---------- */
+.amity-cv-document {
+  width: 100%;
+  color: #111;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Header */
+.amity-cv-header {
+  display: grid;
+  grid-template-columns: 140px 1fr 100px;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 2.5px solid #0C2340;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.amity-cv-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.amity-crest-box {
+  background: #0C2340;
+  color: #FFC107;
+  padding: 6px 10px;
+  border-radius: 2px;
+  border: 1.5px solid #FFC107;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.amity-crest-shield {
+  font-family: 'Times New Roman', serif;
+  font-weight: 900;
+  font-size: 16pt;
+  letter-spacing: 1px;
+}
+
+.amity-brand-title {
+  font-size: 8.5pt;
+  font-weight: 800;
+  color: #0C2340;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.amity-brand-sub {
+  font-size: 6.5pt;
+  color: #555;
+  letter-spacing: 0.3px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.amity-candidate-main {
+  text-align: center;
+}
+
+.amity-candidate-name {
+  font-size: 16pt;
+  font-weight: 800;
+  color: #0C2340;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 2px 0;
+  font-family: 'Times New Roman', serif;
+}
+
+.amity-candidate-degree {
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.amity-candidate-contact {
+  font-size: 8.5pt;
+  color: #333;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+}
+
+.amity-candidate-links {
+  font-size: 8.5pt;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.cv-sep {
+  color: #888;
+  font-size: 8pt;
+}
+
+.cv-link {
+  color: #0056B3;
+  text-decoration: underline;
+  font-size: 8.5pt;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cv-contact-link {
+  color: #111;
+  text-decoration: none;
+}
+
+.cv-contact-link:hover {
+  text-decoration: underline;
+}
+
+.amity-photo-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.amity-passport-photo {
+  width: 85px;
+  height: 105px;
+  object-fit: cover;
+  border: 1.5px solid #0C2340;
+  padding: 1px;
+  background: #FFF;
+}
+
+.amity-photo-placeholder {
+  width: 85px;
+  height: 105px;
+  border: 1px dashed #777;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5pt;
+  color: #777;
+  background: #F8F9FA;
+  font-family: Arial, sans-serif;
+}
+
+/* Sections */
+.amity-section {
+  margin-bottom: 9px;
+  page-break-inside: avoid;
+}
+
+.amity-section-bar {
+  background: #0C2340;
+  color: #FFFFFF;
+  font-size: 9.5pt;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  margin-bottom: 5px;
+  border-left: 5px solid #FFC107;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.amity-section-body {
+  padding: 0 2px;
+}
+
+.amity-objective-text {
+  font-size: 9.5pt;
+  line-height: 1.35;
+  text-align: justify;
+  color: #222;
+}
+
+/* Education Table */
+.amity-edu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.8pt;
+  margin-bottom: 4px;
+}
+
+.amity-edu-table th {
+  background: #EAEFF5;
+  color: #0C2340;
+  border: 1px solid #B0BEC5;
+  padding: 4px 6px;
+  text-align: left;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+  font-size: 8pt;
+  text-transform: uppercase;
+}
+
+.amity-edu-table td {
+  border: 1px solid #CFD8DC;
+  padding: 4px 6px;
+  vertical-align: top;
+  color: #111;
+}
+
+.amity-edu-table tr:nth-child(even) td {
+  background: #FAFAFA;
+}
+
+.amity-coursework {
+  font-size: 8.5pt;
+  margin-top: 4px;
+  color: #333;
+}
+
+/* Skills Table */
+.amity-skills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.amity-skills-table td {
+  padding: 2.5px 4px;
+  vertical-align: top;
+}
+
+.skills-cat {
+  font-weight: 700;
+  width: 28%;
+  color: #0C2340;
+  font-family: Arial, sans-serif;
+  font-size: 8.5pt;
+}
+
+.skills-val {
+  width: 72%;
+  color: #111;
+}
+
+/* Entries */
+.amity-entry {
+  margin-bottom: 6px;
+}
+
+.amity-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 9.5pt;
+}
+
+.amity-entry-title {
+  color: #111;
+  font-size: 9.5pt;
+}
+
+.amity-entry-date {
+  font-size: 8.5pt;
+  font-style: italic;
+  color: #444;
+  white-space: nowrap;
+}
+
+.amity-entry-desc {
+  font-size: 9pt;
+  color: #333;
+  margin-top: 2px;
+}
+
+.amity-tech-badge {
+  font-weight: 600;
+  color: #0C2340;
+  font-size: 8.5pt;
+  font-family: Arial, sans-serif;
+}
+
+.amity-proj-link {
+  font-size: 8pt;
+  margin-top: 1px;
+}
+
+.amity-entry-bullets {
+  list-style-type: square;
+  padding-left: 18px;
+  margin: 3px 0 0 0;
+  font-size: 9pt;
+  line-height: 1.35;
+}
+
+.amity-entry-bullets li {
+  margin-bottom: 2px;
+  text-align: justify;
+}
+
+/* Declaration */
+.amity-declaration-section {
+  margin-top: 10px;
+}
+
+.amity-decl-text {
+  font-size: 8.8pt;
+  font-style: italic;
+  color: #333;
+  line-height: 1.3;
+}
+
+.amity-decl-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 12px;
+  font-size: 8.8pt;
+}
+
+.amity-decl-left {
+  line-height: 1.4;
+}
+
+.amity-decl-right {
+  text-align: right;
+  min-width: 160px;
+}
+
+.amity-signature-line {
+  border-bottom: 1px solid #111;
+  width: 140px;
+  margin-left: auto;
+  margin-bottom: 3px;
+}
+
+.amity-signature-name {
+  font-weight: 700;
+  font-size: 8.5pt;
+  text-transform: uppercase;
 }
 
 .preview-placeholder h3 {
@@ -1401,17 +1682,165 @@ body {
 }
 
 /* ========================================
-   PDF EXPORT SPECIFIC (hidden in screen)
+   JD ASSIST: SUMMARY & DIFF STYLING
+   ======================================== */
+.jd-container-box {
+  background: var(--bg-secondary);
+}
+
+.jd-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--bg-accent-yellow);
+  border: var(--border-width) solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-display);
+}
+
+.jd-accordion-content {
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border-color);
+  border-top: none;
+  background: var(--bg-secondary);
+}
+
+.jd-divider {
+  text-align: center;
+  margin: var(--space-md) 0;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.jd-extracted-summary {
+  background: var(--bg-primary);
+  border: var(--border-width) solid var(--border-color);
+  padding: var(--space-md);
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.summary-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.suggestion-card--warning {
+  border-left: 6px solid var(--bg-accent-orange);
+}
+
+.suggestion-diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.diff-block {
+  padding: var(--space-sm);
+  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+}
+
+.diff-original {
+  background: #FFF5F5;
+  border-left: 4px solid var(--bg-accent-red);
+}
+
+.diff-suggested {
+  background: #F0FFF4;
+  border-left: 4px solid var(--bg-accent-green);
+}
+
+.diff-label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.7rem;
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-muted);
+}
+
+.privacy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.privacy-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--bg-accent-yellow);
+  color: #000;
+  padding: 2px 6px;
+  border: 1px solid #000;
+  font-weight: 700;
+}
+
+.privacy-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0;
+  font-size: 0.85rem;
+}
+
+/* ========================================
+   PDF EXPORT SPECIFIC & PRINT STYLES
    ======================================== */
 @media print {
-  body * { visibility: hidden; }
-  .resume-preview, .resume-preview * { visibility: visible; }
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+  html, body {
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .resume-preview,
+  .resume-preview *,
+  .amity-cv-document,
+  .amity-cv-document * {
+    visibility: visible;
+  }
   .resume-preview {
     position: absolute;
     left: 0;
     top: 0;
-    box-shadow: none;
-    border: none;
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
 

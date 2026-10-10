@@ -13,6 +13,7 @@ const EMPTY_RESUME = {
     state: '',
     photo: null, // base64 string
   },
+  objective: '',
   academic: {
     degree: '',
     university: 'Amity University',
@@ -20,6 +21,14 @@ const EMPTY_RESUME = {
     cgpa: '',
     specialization: '',
     relevantCoursework: '',
+    twelfthSchool: '',
+    twelfthBoard: '',
+    twelfthYear: '',
+    twelfthPercentage: '',
+    tenthSchool: '',
+    tenthBoard: '',
+    tenthYear: '',
+    tenthPercentage: '',
   },
   experience: [
     // { title, company, location, startDate, endDate, current, bullets: [''] }
@@ -93,6 +102,12 @@ export class ResumeStore {
 
   setPhoto(base64) {
     this.data.personal.photo = base64;
+    this.notify();
+  }
+
+  // Career Objective / Overview
+  updateObjective(text) {
+    this.data.objective = text;
     this.notify();
   }
 
@@ -194,6 +209,18 @@ export class ResumeStore {
   removeSkill(category, skill) {
     this.data.skills[category] = this.data.skills[category].filter((s) => s !== skill);
     this.notify();
+  }
+
+  setSkills(category, skills) {
+    this.data.skills[category] = skills;
+    this.notify();
+  }
+
+  reorderSkills(category, orderedSkills) {
+    if (this.data.skills[category]) {
+      this.data.skills[category] = orderedSkills;
+      this.notify();
+    }
   }
 
   // Achievements
