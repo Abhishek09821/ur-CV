@@ -12,6 +12,7 @@
 
 import { renderPreview, buildAmityResumeHTML } from './preview.js';
 import { renderJDPanel } from './jd-panel.js';
+import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
 const SECTIONS = [
   { id: 'personal', label: 'Header & Contact', icon: '👤', required: true },
@@ -89,7 +90,7 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
             ${activeSection !== 'declaration' ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next →</button>' : ''}
             
             <div class="export-btn-group">
-              <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download PDF using html2pdf">
+              <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download 100% Searchable Vector PDF (No cutoff, ATS-ready)">
                 📄 Download PDF
               </button>
               <button class="btn btn--yellow btn--sm" id="btn-print-pdf" title="Open Browser Native Print dialog for 100% Vector PDF">
@@ -760,49 +761,11 @@ function renderDeclarationForm(data, isActive) {
 // ============================================================
 
 async function exportPDF(store, toast) {
-  const errors = store.validate();
-  if (errors.length > 0) {
-    const errorFields = errors.map((e) => e.message).join('\n• ');
-    toast.show(`Please fill required fields:\n• ${errorFields}`, 'error');
-    return;
-  }
+  const data = store.getData();
+  const rawName = (data.personal?.fullName || 'Student').trim().replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_');
+  const fileName = `${rawName || 'Student'}_Amity_Resume.pdf`;
 
-  toast.show('Generating high-resolution Amity PDF...', 'info');
-
-  try {
-    const { default: html2pdf } = await import('html2pdf.js');
-    const data = store.getData();
-
-    const pdfContainer = document.createElement('div');
-    pdfContainer.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;background:#fff;';
-    pdfContainer.innerHTML = `
-      <div class="amity-resume-sheet" style="box-shadow:none;border:none;padding:12mm 15mm;width:210mm;">
-        ${buildAmityResumeHTML(data)}
-      </div>
-    `;
-    document.body.appendChild(pdfContainer);
-
-    const element = pdfContainer.querySelector('.amity-resume-sheet');
-    const studentName = (data.personal.fullName || 'Student').replace(/\s+/g, '_');
-
-    const opt = {
-      margin: [10, 12, 10, 12],
-      filename: `${studentName}_Amity_Resume.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      enableLinks: true,
-    };
-
-    await html2pdf().set(opt).from(element).save();
-
-    document.body.removeChild(pdfContainer);
-    toast.show('Amity Resume PDF downloaded! (Or use Native Print for vector PDF)', 'success');
-  } catch (err) {
-    console.error('PDF export error:', err);
-    toast.show('Download failed. Click "Native Print" to save as PDF directly.', 'error');
-  }
+  await downloadVectorPDF(data, fileName, toast);
 }
 
 function escapeHtml(str) {

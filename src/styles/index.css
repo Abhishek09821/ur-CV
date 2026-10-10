@@ -1621,50 +1621,116 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 14mm;
+    margin: 10mm 12mm;
   }
+
+  /* Reset all background and body */
   html, body {
     background: #FFFFFF !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-  body * {
-    visibility: hidden;
-  }
-  .amity-resume-wrapper,
-  .amity-resume-wrapper *,
-  .amity-resume-sheet,
-  .amity-resume-sheet *,
-  .amity-resume-container,
-  .amity-resume-container * {
-    visibility: visible;
-  }
-  .amity-resume-wrapper {
-    position: absolute;
-    left: 0;
-    top: 0;
     width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    gap: 0 !important;
-  }
-  .amity-resume-sheet {
-    position: static;
-    width: 100% !important;
+    height: auto !important;
     min-height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely remove non-resume UI elements from print flow */
+  header.header,
+  footer.footer,
+  .builder-sidebar,
+  .progress-bar,
+  .builder-mobile-toggle,
+  .builder-actions-toolbar,
+  .toast-container,
+  .modal-overlay,
+  .ticker,
+  .jd-panel,
+  #jd-panel-mount,
+  .landing,
+  .tag {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Flatten layout containers so browser can paginate across multiple A4 sheets */
+  #app,
+  .builder-wrapper,
+  .builder,
+  .builder.active,
+  .builder-preview {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #FFFFFF !important;
+  }
+
+  .amity-resume-wrapper {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .amity-resume-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    background: #FFFFFF !important;
+    box-sizing: border-box !important;
   }
+
+  .amity-resume-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .amity-bar {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background: #2C2E30 !important;
     color: #FFFFFF !important;
   }
+
+  .amity-link-blue {
+    color: #0044CC !important;
+    text-decoration: underline !important;
+  }
+
   .amity-section {
-    page-break-inside: avoid;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .amity-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .amity-declaration-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 
