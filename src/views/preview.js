@@ -1,336 +1,221 @@
 /**
- * Resume Preview & Shared Template Renderer
+ * Amity University Universal Placement Resume Template
+ * EXACT DITTO REPLICA of the Official Placement PDF Reference
  * 
- * Implements the Amity University placement-approved resume template:
- * - Locked header layout with university branding, student photo, name & contact info
- * - Distinctive dark navy section bars with gold accent
- * - Career Objective / Summary
- * - Standardized Academic Qualifications table
- * - Technical Skills, Work Experience / Internships, Projects
- * - Achievements, Leadership & Extracurriculars
- * - Clickable professional links with clean labels (GitHub, LinkedIn, LeetCode, Portfolio)
- * - Self Declaration with Date, Place & Signature block
- * 
- * Shared between the live interactive preview and PDF export engine.
+ * Features:
+ * - Top Header: Official Amity University Shield Logo (Left) | Centered Name & Contact | Passport Photo (Right, max 1MB)
+ * - Solid Charcoal Section Header Bars with crisp white text
+ * - Fully Justified Typography (Times New Roman)
+ * - Bulleted Academic Details (no tables)
+ * - Structured Experience with Title | Company, Italic Duration, Justified Bullets
+ * - Projects with Title, Tech Stack line, Justified Bullets
+ * - Categorized Technical Skills bullets
+ * - Awards & Achievements bullets
+ * - Leadership & Initiative bullets
+ * - Clickable Blue Underlined Links (LinkedIn, GitHub, LeetCode)
+ * - Self Declaration with Date, Place, divider line, and Candidate Name
  */
 
+import { AMITY_OFFICIAL_LOGO_DATA_URL } from '../assets/amity-assets.js';
+
 export function renderPreview(data) {
-  const p = data.personal || {};
-  const a = data.academic || {};
-
-  const hasData = !!(p.fullName || p.email || a.degree || data.objective);
-
-  if (!hasData) {
-    return `
-      <div class="resume-preview preview-empty">
-        <div class="preview-placeholder">
-          <div class="placeholder-crest">🎓</div>
-          <div class="placeholder-title">AMITY UNIVERSITY RESUME TEMPLATE</div>
-          <p class="placeholder-subtitle">Start filling your details in the editor to see your placement-ready resume preview live.</p>
-          <div class="placeholder-tags">
-            <span>✓ Placement Cell Approved</span>
-            <span>✓ A4 Print Formatted</span>
-            <span>✓ ATS Friendly</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
+  if (!data) return '';
   return `
-    <div class="resume-preview" id="rendered-resume-preview">
-      ${buildAmityResumeHTML(data)}
+    <div class="amity-resume-wrapper">
+      <div class="amity-resume-sheet" id="amity-sheet-preview">
+        ${buildAmityResumeHTML(data)}
+      </div>
     </div>
   `;
 }
 
 /**
- * Shared source-of-truth HTML generator for both live preview & PDF export
+ * Generates the EXACT Amity University placement resume HTML
  */
 export function buildAmityResumeHTML(data) {
   const p = data.personal || {};
-  const a = data.academic || {};
-  const links = data.links || {};
-
-  // Build clickable links list
-  const linkItems = [];
-  if (links.github) linkItems.push(`<a href="${esc(links.github)}" target="_blank" class="cv-link"><strong>GitHub</strong></a>`);
-  if (links.linkedin) linkItems.push(`<a href="${esc(links.linkedin)}" target="_blank" class="cv-link"><strong>LinkedIn</strong></a>`);
-  if (links.leetcode) linkItems.push(`<a href="${esc(links.leetcode)}" target="_blank" class="cv-link"><strong>LeetCode</strong></a>`);
-  if (links.portfolio) linkItems.push(`<a href="${esc(links.portfolio)}" target="_blank" class="cv-link"><strong>Portfolio</strong></a>`);
-  if (links.other) linkItems.push(`<a href="${esc(links.other)}" target="_blank" class="cv-link"><strong>Website</strong></a>`);
-
-  const contactItems = [];
-  if (p.email) contactItems.push(`<a href="mailto:${esc(p.email)}" class="cv-contact-link">${esc(p.email)}</a>`);
-  if (p.phone) contactItems.push(`<span>${esc(p.phone)}</span>`);
-  const location = [p.city, p.state].filter(Boolean).join(', ') || p.address;
-  if (location) contactItems.push(`<span>${esc(location)}</span>`);
+  const academic = data.academic || [];
+  const experience = data.experience || [];
+  const projects = data.projects || [];
+  const skills = data.skills || [];
+  const awards = data.awards || [];
+  const leadership = data.leadership || [];
+  const links = data.links || [];
+  const declaration = data.declaration || {};
 
   return `
-    <div class="amity-cv-document">
-      <!-- ===== UNIVERSITY BRANDED HEADER ===== -->
-      <div class="amity-cv-header">
-        <div class="amity-cv-brand">
-          <div class="amity-crest-box">
-            <div class="amity-crest-shield">AU</div>
-          </div>
-          <div class="amity-brand-text">
-            <div class="amity-brand-title">AMITY UNIVERSITY</div>
-            <div class="amity-brand-sub">UTTAR PRADESH, INDIA</div>
+    <div class="amity-resume-container">
+      <!-- ================= HEADER ================= -->
+      <header class="amity-header">
+        <div class="amity-header-left">
+          <img src="${AMITY_OFFICIAL_LOGO_DATA_URL}" class="amity-shield-logo" alt="Amity University Logo" />
+        </div>
+
+        <div class="amity-header-center">
+          <h1 class="amity-candidate-name">${esc(p.fullName) || 'Abhishek Tiwari'}</h1>
+          <div class="amity-candidate-contact-line"><strong>Address:</strong> ${esc(p.address || '')}</div>
+          <div class="amity-candidate-contact-line"><strong>Phone:</strong> ${esc(p.phone || '')}</div>
+          <div class="amity-candidate-contact-line">
+            <strong>Email:</strong> ${p.email ? `<a href="mailto:${esc(p.email)}" class="amity-link-blue">${esc(p.email)}</a>` : ''}
           </div>
         </div>
 
-        <div class="amity-candidate-main">
-          <h1 class="amity-candidate-name">${esc(p.fullName) || 'STUDENT NAME'}</h1>
-          ${a.degree ? `<div class="amity-candidate-degree">${esc(a.degree)}${a.specialization ? ` (${esc(a.specialization)})` : ''}</div>` : ''}
-          <div class="amity-candidate-contact">
-            ${contactItems.join('<span class="cv-sep">•</span>')}
-          </div>
-          ${linkItems.length > 0 ? `
-            <div class="amity-candidate-links">
-              ${linkItems.join('<span class="cv-sep">|</span>')}
-            </div>
-          ` : ''}
-        </div>
-
-        <div class="amity-photo-container">
+        <div class="amity-header-right">
           ${p.photo ? `
-            <img src="${p.photo}" class="amity-passport-photo" alt="Passport Photo" />
+            <img src="${p.photo}" class="amity-photo-box" alt="Candidate Photo" />
           ` : `
-            <div class="amity-photo-placeholder">
+            <div class="amity-photo-box amity-photo-placeholder">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="#777">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
               <span>PHOTO</span>
             </div>
           `}
         </div>
-      </div>
+      </header>
 
-      <!-- ===== CAREER OBJECTIVE ===== -->
+      <!-- ================= CAREER OBJECTIVE ================= -->
       ${data.objective ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>CAREER OBJECTIVE</span>
+        <section class="amity-section">
+          <div class="amity-bar">CAREER OBJECTIVE</div>
+          <div class="amity-content">
+            <p class="amity-text-justified">${esc(data.objective)}</p>
           </div>
-          <div class="amity-section-body amity-objective-text">
-            ${esc(data.objective)}
-          </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== ACADEMIC QUALIFICATIONS ===== -->
-      ${(a.degree || a.twelfthSchool || a.tenthSchool) ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>ACADEMIC DETAILS</span>
+      <!-- ================= ACADEMIC DETAILS ================= -->
+      ${academic.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">ACADEMIC DETAILS</div>
+          <div class="amity-content">
+            <ul class="amity-bullet-list">
+              ${academic.map((item) => `<li>${esc(String(item).replace(/^[•\-\*]\s*/, ''))}</li>`).join('')}
+            </ul>
           </div>
-          <div class="amity-section-body">
-            <table class="amity-edu-table">
-              <thead>
-                <tr>
-                  <th style="width: 28%;">Course / Degree</th>
-                  <th style="width: 32%;">Institution</th>
-                  <th style="width: 18%;">Board / University</th>
-                  <th style="width: 10%;">Year</th>
-                  <th style="width: 12%;">CGPA / %</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${a.degree ? `
-                  <tr>
-                    <td><strong>${esc(a.degree)}</strong>${a.specialization ? `<br><small>${esc(a.specialization)}</small>` : ''}</td>
-                    <td>${esc(a.university || 'Amity University')}</td>
-                    <td>Amity University</td>
-                    <td>${esc(a.graduationYear) || '—'}</td>
-                    <td><strong>${esc(a.cgpa) || '—'}</strong></td>
-                  </tr>
-                ` : ''}
-                ${a.twelfthSchool ? `
-                  <tr>
-                    <td>Class XII (Senior Secondary)</td>
-                    <td>${esc(a.twelfthSchool)}</td>
-                    <td>${esc(a.twelfthBoard || 'CBSE')}</td>
-                    <td>${esc(a.twelfthYear || '—')}</td>
-                    <td><strong>${esc(a.twelfthPercentage || '—')}</strong></td>
-                  </tr>
-                ` : ''}
-                ${a.tenthSchool ? `
-                  <tr>
-                    <td>Class X (Secondary)</td>
-                    <td>${esc(a.tenthSchool)}</td>
-                    <td>${esc(a.tenthBoard || 'CBSE')}</td>
-                    <td>${esc(a.tenthYear || '—')}</td>
-                    <td><strong>${esc(a.tenthPercentage || '—')}</strong></td>
-                  </tr>
-                ` : ''}
-              </tbody>
-            </table>
-            ${a.relevantCoursework ? `
-              <div class="amity-coursework">
-                <strong>Relevant Coursework:</strong> ${esc(a.relevantCoursework)}
-              </div>
-            ` : ''}
-          </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== TECHNICAL SKILLS ===== -->
-      ${Object.values(data.skills || {}).some((arr) => arr && arr.length > 0) ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>TECHNICAL SKILLS</span>
-          </div>
-          <div class="amity-section-body">
-            <table class="amity-skills-table">
-              ${data.skills.languages && data.skills.languages.length > 0 ? `
-                <tr>
-                  <td class="skills-cat">Languages:</td>
-                  <td class="skills-val">${data.skills.languages.map(esc).join(', ')}</td>
-                </tr>
-              ` : ''}
-              ${data.skills.frameworks && data.skills.frameworks.length > 0 ? `
-                <tr>
-                  <td class="skills-cat">Frameworks & Libraries:</td>
-                  <td class="skills-val">${data.skills.frameworks.map(esc).join(', ')}</td>
-                </tr>
-              ` : ''}
-              ${data.skills.tools && data.skills.tools.length > 0 ? `
-                <tr>
-                  <td class="skills-cat">Developer Tools & Platforms:</td>
-                  <td class="skills-val">${data.skills.tools.map(esc).join(', ')}</td>
-                </tr>
-              ` : ''}
-              ${data.skills.databases && data.skills.databases.length > 0 ? `
-                <tr>
-                  <td class="skills-cat">Databases:</td>
-                  <td class="skills-val">${data.skills.databases.map(esc).join(', ')}</td>
-                </tr>
-              ` : ''}
-              ${data.skills.other && data.skills.other.length > 0 ? `
-                <tr>
-                  <td class="skills-cat">Areas of Interest / Other:</td>
-                  <td class="skills-val">${data.skills.other.map(esc).join(', ')}</td>
-                </tr>
-              ` : ''}
-            </table>
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- ===== WORK EXPERIENCE & INTERNSHIPS ===== -->
-      ${data.experience && data.experience.length > 0 ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>WORK EXPERIENCE / INTERNSHIPS</span>
-          </div>
-          <div class="amity-section-body">
-            ${data.experience.map((exp) => `
-              <div class="amity-entry">
-                <div class="amity-entry-header">
-                  <span class="amity-entry-title">${esc(exp.title || 'Role')} — <em>${esc(exp.company || 'Company')}</em>${exp.location ? `, ${esc(exp.location)}` : ''}</span>
-                  <span class="amity-entry-date">${formatDateRange(exp.startDate, exp.endDate, exp.current)}</span>
+      <!-- ================= EXPERIENCE ================= -->
+      ${experience.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">EXPERIENCE</div>
+          <div class="amity-content">
+            ${experience.map((exp) => `
+              <div class="amity-item">
+                <div class="amity-item-title">
+                  <strong>${esc(exp.title || '')}${exp.company ? ` | ${esc(exp.company)}` : ''}</strong>
                 </div>
+                ${exp.duration ? `<div class="amity-item-sub"><em>${esc(exp.duration)}</em></div>` : ''}
                 ${exp.bullets && exp.bullets.filter(Boolean).length > 0 ? `
-                  <ul class="amity-entry-bullets">
+                  <ul class="amity-bullet-list">
                     ${exp.bullets.filter(Boolean).map((b) => `<li>${esc(b)}</li>`).join('')}
                   </ul>
                 ` : ''}
               </div>
             `).join('')}
           </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== PROJECTS ===== -->
-      ${data.projects && data.projects.length > 0 ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>PROJECTS</span>
-          </div>
-          <div class="amity-section-body">
-            ${data.projects.map((proj) => `
-              <div class="amity-entry">
-                <div class="amity-entry-header">
-                  <span class="amity-entry-title">
-                    <strong>${esc(proj.name || 'Project Name')}</strong>
-                    ${proj.techStack ? `<span class="amity-tech-badge"> [${esc(proj.techStack)}]</span>` : ''}
-                  </span>
-                  <span class="amity-entry-date">${formatDateRange(proj.startDate, proj.endDate)}</span>
+      <!-- ================= PROJECTS ================= -->
+      ${projects.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">PROJECTS</div>
+          <div class="amity-content">
+            ${projects.map((proj) => `
+              <div class="amity-item">
+                <div class="amity-item-title">
+                  <strong>${esc(proj.name || '')}</strong>
                 </div>
-                ${proj.link ? `
-                  <div class="amity-proj-link">
-                    <a href="${esc(proj.link)}" target="_blank" class="cv-link">🔗 ${esc(proj.link)}</a>
+                ${proj.techStack ? `
+                  <div class="amity-item-tech">
+                    <strong>Tech Stack:</strong> ${esc(proj.techStack)}
                   </div>
                 ` : ''}
                 ${proj.bullets && proj.bullets.filter(Boolean).length > 0 ? `
-                  <ul class="amity-entry-bullets">
+                  <ul class="amity-bullet-list">
                     ${proj.bullets.filter(Boolean).map((b) => `<li>${esc(b)}</li>`).join('')}
                   </ul>
                 ` : ''}
               </div>
             `).join('')}
           </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== ACHIEVEMENTS & CERTIFICATIONS ===== -->
-      ${data.achievements && data.achievements.length > 0 ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>AWARDS & ACHIEVEMENTS</span>
-          </div>
-          <div class="amity-section-body">
-            <ul class="amity-entry-bullets">
-              ${data.achievements.map((ach) => `
-                <li>
-                  <strong>${esc(ach.title)}</strong>
-                  ${ach.date ? ` (${esc(ach.date)})` : ''}
-                  ${ach.description ? ` — ${esc(ach.description)}` : ''}
-                </li>
+      <!-- ================= TECHNICAL SKILLS ================= -->
+      ${skills.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">TECHNICAL SKILLS</div>
+          <div class="amity-content">
+            <ul class="amity-bullet-list">
+              ${skills.map((s) => `
+                <li><strong>${esc(s.category)}:</strong> ${esc(s.skills)}</li>
               `).join('')}
             </ul>
           </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== LEADERSHIP & INITIATIVES ===== -->
-      ${data.leadership && data.leadership.length > 0 ? `
-        <div class="amity-section">
-          <div class="amity-section-bar">
-            <span>LEADERSHIP & POSITIONS OF RESPONSIBILITY</span>
+      <!-- ================= AWARDS AND ACHIEVEMENTS ================= -->
+      ${awards.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">AWARDS AND ACHIEVEMENTS</div>
+          <div class="amity-content">
+            <ul class="amity-bullet-list">
+              ${awards.map((a) => `<li>${esc(String(a).replace(/^[•\-\*]\s*/, ''))}</li>`).join('')}
+            </ul>
           </div>
-          <div class="amity-section-body">
-            ${data.leadership.map((lead) => `
-              <div class="amity-entry">
-                <div class="amity-entry-header">
-                  <span class="amity-entry-title"><strong>${esc(lead.role)}</strong>${lead.organization ? ` — ${esc(lead.organization)}` : ''}</span>
-                  <span class="amity-entry-date">${esc(lead.date || '')}</span>
-                </div>
-                ${lead.description ? `<div class="amity-entry-desc">${esc(lead.description)}</div>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </div>
+        </section>
       ` : ''}
 
-      <!-- ===== SELF DECLARATION ===== -->
-      ${data.declaration && data.declaration.text ? `
-        <div class="amity-section amity-declaration-section">
-          <div class="amity-section-bar">
-            <span>DECLARATION</span>
+      <!-- ================= LEADERSHIP & INITIATIVE ================= -->
+      ${leadership.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">LEADERSHIP & INITIATIVE</div>
+          <div class="amity-content">
+            <ul class="amity-bullet-list">
+              ${leadership.map((lead) => `
+                <li>${lead.title ? `<strong>${esc(lead.title)}:</strong> ` : ''}${esc(lead.description || '')}</li>
+              `).join('')}
+            </ul>
           </div>
-          <div class="amity-section-body">
-            <p class="amity-decl-text">${esc(data.declaration.text)}</p>
-            <div class="amity-decl-footer">
+        </section>
+      ` : ''}
+
+      <!-- ================= LINKS ================= -->
+      ${links.length > 0 ? `
+        <section class="amity-section">
+          <div class="amity-bar">LINKS</div>
+          <div class="amity-content">
+            <ul class="amity-bullet-list">
+              ${links.map((l) => `
+                <li><a href="${esc(l.url)}" target="_blank" class="amity-link-blue">${esc(l.label || l.url)}</a></li>
+              `).join('')}
+            </ul>
+          </div>
+        </section>
+      ` : ''}
+
+      <!-- ================= SELF DECLARATION ================= -->
+      ${declaration.text ? `
+        <section class="amity-section amity-declaration-section">
+          <div class="amity-bar">SELF DECLARATION</div>
+          <div class="amity-content">
+            <p class="amity-text-justified">${esc(declaration.text)}</p>
+            <div class="amity-declaration-footer">
               <div class="amity-decl-left">
-                ${data.declaration.place ? `<div><strong>Place:</strong> ${esc(data.declaration.place)}</div>` : ''}
-                ${data.declaration.date ? `<div><strong>Date:</strong> ${esc(data.declaration.date)}</div>` : ''}
+                ${declaration.date ? `<div><strong>Date:</strong> ${esc(declaration.date)}</div>` : ''}
+                ${declaration.place ? `<div><strong>Place:</strong> ${esc(declaration.place)}</div>` : ''}
               </div>
+              <div class="amity-decl-center-bar"></div>
               <div class="amity-decl-right">
-                <div class="amity-signature-line"></div>
-                <div class="amity-signature-name">${esc(p.fullName) || 'Candidate Signature'}</div>
+                <strong>${esc(p.fullName || 'Abhishek Tiwari')}</strong>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       ` : ''}
     </div>
   `;
@@ -341,22 +226,4 @@ function esc(str) {
   const div = document.createElement('div');
   div.textContent = String(str);
   return div.innerHTML;
-}
-
-function formatDateRange(start, end, current = false) {
-  const parts = [];
-  if (start) parts.push(formatMonth(start));
-  if (current) {
-    parts.push('Present');
-  } else if (end) {
-    parts.push(formatMonth(end));
-  }
-  return parts.join(' – ');
-}
-
-function formatMonth(yyyymm) {
-  if (!yyyymm) return '';
-  const [year, month] = yyyymm.split('-');
-  const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return month ? `${months[parseInt(month, 10)]} ${year}` : year;
 }

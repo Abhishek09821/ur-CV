@@ -324,14 +324,19 @@ export function renderJDPanel({ store, toast }) {
       store.updateObjective(s.suggestedText || s.text);
       toast.show('Updated Career Objective!', 'success');
     } else if (s.action === 'REORDER_SKILLS') {
-      if (s.reorderedSkills && s.category) {
-        store.reorderSkills(s.category, s.reorderedSkills);
+      if (s.catIndex !== undefined && s.suggestedText) {
+        store.updateSkillCategory(s.catIndex, 'skills', s.suggestedText);
         toast.show(`Prioritized ${s.category} skills for this role!`, 'success');
       }
     } else if (s.action === 'ADD_SKILL') {
-      if (s.skillName && s.category) {
-        store.addSkill(s.category, s.skillName);
+      if (s.catIndex !== undefined) {
+        const curSkills = store.getData().skills[s.catIndex]?.skills || '';
+        const updated = curSkills ? `${curSkills}, ${s.skillName}` : s.skillName;
+        store.updateSkillCategory(s.catIndex, 'skills', updated);
         toast.show(`Added ${s.skillName} to verified ${s.category}!`, 'success');
+      } else {
+        store.addSkillCategory(s.category || 'Technical Skills', s.skillName);
+        toast.show(`Added ${s.skillName} category!`, 'success');
       }
     } else if (s.action === 'UPDATE_PROJECT_BULLET') {
       if (s.projIndex !== undefined && s.bulletIndex !== undefined) {
@@ -375,15 +380,16 @@ function analyzeJDAndProfile(jdText, data) {
   const matchedInJD = TECH_DICTIONARY.filter((tech) => jdLower.includes(tech));
 
   // Determine candidate's existing skills across categories
-  const candidateSkills = {
-    languages: (data.skills?.languages || []),
-    frameworks: (data.skills?.frameworks || []),
-    tools: (data.skills?.tools || []),
-    databases: (data.skills?.databases || []),
-    other: (data.skills?.other || []),
-  };
+  const skillCategories = Array.isArray(data.skills) ? data.skills : [];
+  const allCandidateSkillsList = [];
 
-  const allCandidateSkillsLower = Object.values(candidateSkills).flat().map((s) => s.toLowerCase());
+  skillCategories.forEach((catObj) => {
+    const raw = catObj.skills || '';
+    const items = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    allCandidateSkillsList.push(...items);
+  });
+
+  const allCandidateSkillsLower = allCandidateSkillsList.map((s) => s.toLowerCase());
 
   // Skills present in BOTH JD and candidate profile
   const sharedSkills = matchedInJD.filter((kw) =>
@@ -397,10 +403,12 @@ function analyzeJDAndProfile(jdText, data) {
 
   const suggestions = [];
 
-  // 1. Skill Relevance Ordering (Reorder candidate's verified skills to put JD matches first)
-  Object.entries(candidateSkills).forEach(([cat, list]) => {
-    if (list.length > 1) {
-      const matchedFirst = [...list].sort((a, b) => {
+  // 1. Skill Relevance Ordering (Reorder candidate's verified skills to put JD matches first within category)
+  skillCategories.forEach((catObj, catIdx) => {
+    const raw = catObj.skills || '';
+    const items = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (items.length > 1) {
+      const matchedFirst = [...items].sort((a, b) => {
         const aMatch = matchedInJD.some((kw) => a.toLowerCase().includes(kw));
         const bMatch = matchedInJD.some((kw) => b.toLowerCase().includes(kw));
         if (aMatch && !bMatch) return -1;
@@ -408,18 +416,20 @@ function analyzeJDAndProfile(jdText, data) {
         return 0;
       });
 
-      const changed = JSON.stringify(matchedFirst) !== JSON.stringify(list);
-      if (changed) {
+      const originalText = items.join(', ');
+      const suggestedText = matchedFirst.join(', ');
+
+      if (originalText !== suggestedText) {
         suggestions.push({
           section: 'Skills',
           type: 'Relevance Ordering',
           action: 'REORDER_SKILLS',
-          category: cat,
-          reorderedSkills: matchedFirst,
-          text: `Prioritize ${cat} matching the JD: ${matchedFirst.filter((s) => matchedInJD.some((kw) => s.toLowerCase().includes(kw))).join(', ')}`,
-          originalText: list.join(', '),
-          suggestedText: matchedFirst.join(', '),
-          source: `Verified student ${cat} profile against JD keywords (${sharedSkills.join(', ')})`,
+          catIndex: catIdx,
+          category: catObj.category,
+          text: `Prioritize ${catObj.category} matching the JD: ${matchedFirst.filter((s) => matchedInJD.some((kw) => s.toLowerCase().includes(kw))).join(', ')}`,
+          originalText,
+          suggestedText,
+          source: `Verified student ${catObj.category} profile against JD keywords (${sharedSkills.join(', ')})`,
           confidence: 'high',
         });
       }
@@ -427,13 +437,22 @@ function analyzeJDAndProfile(jdText, data) {
   });
 
   // 2. Career Objective Suggestion
-  const studentDegree = data.academic?.degree || 'engineering graduate';
+  let studentDegree = 'B.Tech Computer Science';
+  if (Array.isArray(data.academic) && data.academic.length > 0) {
+    const firstAcad = data.academic[0] || '';
+    if (firstAcad.toLowerCase().includes('btech') || firstAcad.toLowerCase().includes('b.tech')) {
+      studentDegree = 'B.Tech Computer Science';
+    } else {
+      studentDegree = firstAcad.replace(/^•\s*/, '').split('|')[0].trim() || 'graduate';
+    }
+  }
+
   const primarySkills = sharedSkills.slice(0, 4).map(capitalize).join(', ');
   const targetRole = detectRole(jdLower);
 
   const proposedObjective = primarySkills.length > 0
-    ? `Dedicated ${studentDegree} student with hands-on proficiency in ${primarySkills}. Seeking the ${targetRole} position to apply structured software engineering practices and contribute to high-impact projects.`
-    : `Enthusiastic and analytical ${studentDegree} student eager to leverage verified academic foundations and project experience in the ${targetRole} role.`;
+    ? `Motivated final-year ${studentDegree} student with a strong foundation in ${primarySkills}. Seeking a ${targetRole} role to design and deliver scalable, end-to-end features using clean and reliable code.`
+    : `Motivated final-year ${studentDegree} student with a strong foundation in software architecture, web development, and data-driven solutions. Seeking a ${targetRole} role to contribute to scalable engineering projects.`;
 
   suggestions.push({
     section: 'Career Objective',
@@ -452,7 +471,6 @@ function analyzeJDAndProfile(jdText, data) {
       const projTech = (proj.techStack || '').toLowerCase();
       const hasMatch = matchedInJD.some((kw) => projTech.includes(kw));
       if (hasMatch && proj.bullets && proj.bullets.length > 0) {
-        // Find first bullet that can be highlighted
         proj.bullets.forEach((bullet, bIdx) => {
           if (bullet && bullet.trim().length > 10 && !bullet.includes('Engineered')) {
             const refined = `Engineered ${bullet.replace(/^(built|created|made|worked on)\s+/i, '')}`;
@@ -478,12 +496,17 @@ function analyzeJDAndProfile(jdText, data) {
   if (gapSkills.length > 0) {
     gapSkills.slice(0, 3).forEach((skill) => {
       const cat = detectCategory(skill);
+      // find index of category if exists
+      const targetCatIdx = skillCategories.findIndex((c) =>
+        c.category.toLowerCase().includes(cat.toLowerCase())
+      );
       suggestions.push({
         section: 'Skills Gap Analysis',
         type: 'Gap Analysis',
         action: 'ADD_SKILL',
         skillName: capitalize(skill),
-        category: cat,
+        catIndex: targetCatIdx !== -1 ? targetCatIdx : undefined,
+        category: targetCatIdx !== -1 ? skillCategories[targetCatIdx].category : capitalize(cat),
         text: `The JD specifies "${skill}", which is not currently in your profile. ONLY accept if you have genuine coursework or practical experience.`,
         originalText: `Not present in ${cat}`,
         suggestedText: `Add "${capitalize(skill)}" to ${cat}`,

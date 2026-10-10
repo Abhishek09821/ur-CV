@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150" width="80" height="100">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002855"/>
+      <stop offset="100%" stop-color="#001833"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="50%" stop-color="#F5B700"/>
+      <stop offset="100%" stop-color="#D48800"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Shield -->
+  <path d="M 10 10 L 110 10 Q 110 90 60 145 Q 10 90 10 10 Z" fill="url(#shieldGrad)" stroke="#D4AF37" stroke-width="2.5"/>
+  <!-- Inner Shield Border -->
+  <path d="M 14 14 L 106 14 Q 106 88 60 140 Q 14 88 14 14 Z" fill="none" stroke="#FFE066" stroke-width="1" opacity="0.7"/>
+  <!-- AMITY Text -->
+  <text x="60" y="29" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="1.5">AMITY</text>
+  <!-- UNIVERSITY Text -->
+  <text x="60" y="41" font-family="Arial, Helvetica, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">UNIVERSITY</text>
+  <!-- Dividing line -->
+  <path d="M 22 47 L 98 47" stroke="#D4AF37" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Golden Torch & Flame -->
+  <!-- Blue ring circle behind flame -->
+  <circle cx="60" cy="88" r="32" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity="0.35"/>
+  <!-- Flame base ring -->
+  <ellipse cx="60" cy="112" rx="16" ry="6" fill="none" stroke="#FFE066" stroke-width="2"/>
+  <!-- Flame Body -->
+  <path d="M 60 54 Q 68 76 72 88 Q 76 102 68 112 Q 62 104 60 96 Q 58 104 52 112 Q 44 102 48 88 Q 52 76 60 54 Z" fill="url(#goldGrad)"/>
+  <!-- Inner Flame highlight -->
+  <path d="M 60 64 Q 64 80 66 90 Q 62 100 60 94 Q 58 100 54 90 Q 56 80 60 64 Z" fill="#FFFFFF" opacity="0.6"/>
+</svg>
