@@ -86,17 +86,8 @@ export function buildJakesResumeHTML(data) {
   const links = data.links || [];
 
   return `
-    <table class="amity-print-table">
-      <thead class="amity-print-thead">
-        <tr>
-          <td><div class="amity-print-header-space"></div></td>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <div class="jakes-resume-container">
-              <!-- ================= 1. HEADER ================= -->
+    <div class="jakes-resume-container">
+      <!-- ================= 1. HEADER ================= -->
               <header class="jakes-header">
                 <h1 class="jakes-candidate-name">${esc(p.fullName) || 'Abhishek Tiwari'}</h1>
                 <div class="jakes-contact-line">
@@ -215,15 +206,6 @@ export function buildJakesResumeHTML(data) {
                   </div>
                 </section>
               ` : ''}
-            </div>
-          </td>
-        </tr>
-      </tbody>
-      <tfoot class="amity-print-tfoot">
-        <tr>
-          <td><div class="amity-print-footer-space"></div></td>
-        </tr>
-      </tfoot>
-    </table>
+    </div>
   `;
 }
