@@ -11,6 +11,7 @@ import { renderHeader } from './components/header.js';
 import { renderFooter } from './components/footer.js';
 import { ToastManager } from './components/toast.js';
 import { openTemplateModal } from './components/template-modal.js';
+import { openPreviewModal } from './components/preview-modal.js';
 import { AMITY_DEFAULT_PHOTO_DATA_URL } from './assets/amity-assets.js';
 
 class App {
@@ -186,8 +187,8 @@ class App {
     // Structured Footer
     const footer = renderFooter({
       onNavigate: (view) => this.navigateTo(view),
-      onShowTemplates: () => {
-        openTemplateModal({
+      onShowPreview: () => {
+        openPreviewModal({
           store: this.store,
           toast: this.toast,
           onSelect: () => {

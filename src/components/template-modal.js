@@ -1,9 +1,8 @@
 /**
  * Resume Template Selection Modal
  *
- * Pop-up dialog allowing users to choose or switch between:
- * 1. 🎓 Amity Official Format (University Placement drives, photo & shield)
- * 2. 📄 Jake's Resume (Overleaf / LaTeX Software Engineer ATS single-page)
+ * Horizontal, side-by-side layout across all screen sizes.
+ * Never stacks vertically — fits completely within screen without scrolling.
  */
 
 export function openTemplateModal({ store, toast, onSelect }) {
@@ -23,71 +22,69 @@ export function openTemplateModal({ store, toast, onSelect }) {
       <div class="modal-header">
         <div>
           <div class="flex items-center gap-xs">
-            <span class="badge badge--yellow" style="font-size:0.75rem;">RESUME FORMATS</span>
-            <span class="badge badge--green" style="font-size:0.75rem;">100% ATS COMPATIBLE</span>
+            <span class="badge badge--yellow" style="font-size:0.7rem;">RESUME FORMATS</span>
+            <span class="badge badge--green" style="font-size:0.7rem;">100% ATS COMPATIBLE</span>
           </div>
           <h2 class="modal-title mt-xs" id="tpl-modal-title">Choose Resume Template</h2>
           <p class="form-hint" style="margin-top:2px;">
-            Select a format suited for your recruitment process. All your entered data carries over seamlessly.
+            Select your preferred standard. Both formats share all your data.
           </p>
         </div>
         <button class="modal-close" id="btn-tpl-modal-close" title="Close (ESC)">&times;</button>
       </div>
 
-      <!-- Modal Body: Template Selection Cards -->
+      <!-- Horizontal Side-by-Side Template Cards -->
       <div class="template-cards-grid">
-        <!-- Template 1: Amity Official Format -->
+        <!-- Card 1: Amity Official Format -->
         <div class="template-card ${currentTemplate === 'amity' ? 'active' : ''}" data-tpl="amity">
           <div class="template-card-header">
             <div class="template-card-icon">🎓</div>
             <div class="template-card-meta">
               <span class="template-badge template-badge--amity">OFFICIAL FORMAT</span>
-              <h3 class="template-card-title">Amity Official Format</h3>
+              <h3 class="template-card-title">Amity Official</h3>
             </div>
           </div>
 
           <p class="template-card-desc">
-            Official format engineered strictly for Amity University campus placement drives and T&amp;P verification.
+            Campus placement drives &amp; T&amp;P verification.
           </p>
 
           <ul class="template-card-features">
-            <li><span>✓</span> Official Amity shield logo &amp; passport photo</li>
-            <li><span>✓</span> Structured charcoal #2C2E30 section bars</li>
-            <li><span>✓</span> Mandatory Self-Declaration with Date &amp; Place</li>
-            <li><span>✓</span> Precise Times New Roman justified typography</li>
+            <li><span>✓</span> Shield logo &amp; photo box</li>
+            <li><span>✓</span> Charcoal section bars</li>
+            <li><span>✓</span> Self-Declaration table</li>
           </ul>
 
           <div class="template-card-action">
             <button class="btn btn--block ${currentTemplate === 'amity' ? 'btn--yellow' : 'btn--white'} btn-select-tpl" data-tpl="amity">
-              ${currentTemplate === 'amity' ? '✓ Selected (Active)' : 'Use Amity Format &rarr;'}
+              ${currentTemplate === 'amity' ? '✓ Selected' : 'Use Amity &rarr;'}
             </button>
           </div>
         </div>
 
-        <!-- Template 2: Jake's Resume -->
+        <!-- Card 2: Jake's Resume -->
         <div class="template-card ${currentTemplate === 'jakes' ? 'active' : ''}" data-tpl="jakes">
           <div class="template-card-header">
             <div class="template-card-icon">📄</div>
             <div class="template-card-meta">
-              <span class="template-badge template-badge--jakes">LATEX / OVERLEAF</span>
+              <span class="template-badge template-badge--jakes">LATEX STANDARD</span>
               <h3 class="template-card-title">Jake's Resume</h3>
             </div>
           </div>
 
           <p class="template-card-desc">
-            The iconic Software Engineer resume standard from Overleaf. Ultra-clean, single-page, and recruiter-focused.
+            Overleaf software engineer ATS single-page format.
           </p>
 
           <ul class="template-card-features">
-            <li><span>✓</span> Centered header with interactive social profiles</li>
-            <li><span>✓</span> Full-width horizontal divider lines</li>
-            <li><span>✓</span> Zero graphics or photos for 100% ATS readability</li>
-            <li><span>✓</span> Right-aligned dates and dense bullet layouts</li>
+            <li><span>✓</span> Centered header &amp; links</li>
+            <li><span>✓</span> 1px horizontal rule lines</li>
+            <li><span>✓</span> Right-aligned dates</li>
           </ul>
 
           <div class="template-card-action">
             <button class="btn btn--block ${currentTemplate === 'jakes' ? 'btn--yellow' : 'btn--white'} btn-select-tpl" data-tpl="jakes">
-              ${currentTemplate === 'jakes' ? '✓ Selected (Active)' : "Use Jake's Resume &rarr;"}
+              ${currentTemplate === 'jakes' ? '✓ Selected' : "Use Jake's &rarr;"}
             </button>
           </div>
         </div>
@@ -112,19 +109,15 @@ export function openTemplateModal({ store, toast, onSelect }) {
   };
   document.addEventListener('keydown', handleKeyDown);
 
-  // Close button
   overlay.querySelector('#btn-tpl-modal-close')?.addEventListener('click', closeModal);
-
-  // Backdrop click to close
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       closeModal();
     }
   });
 
-  // Template selection
   overlay.querySelectorAll('.btn-select-tpl, .template-card').forEach((el) => {
-    el.addEventListener('click', (e) => {
+    el.addEventListener('click', () => {
       const tpl = el.dataset.tpl || el.closest('[data-tpl]')?.dataset.tpl;
       if (!tpl) return;
 

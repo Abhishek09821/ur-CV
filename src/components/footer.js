@@ -1,7 +1,7 @@
 /**
  * Footer Component — Structured Neo-Brutalist Layout
  */
-export function renderFooter({ onNavigate, onShowTemplates } = {}) {
+export function renderFooter({ onNavigate, onShowPreview } = {}) {
   const footer = document.createElement('footer');
   footer.className = 'footer';
 
@@ -15,10 +15,10 @@ export function renderFooter({ onNavigate, onShowTemplates } = {}) {
             <span class="logo-accent">ur</span>-CV
           </div>
           <p class="footer-tagline">
-            Official Amity University, Jake's Resume and more formats. Fully client-side, structured, and privacy-preserving.
+            Official Amity format and many more. Fully client-side, structured, and privacy-preserving.
           </p>
-          <button type="button" class="footer-meta-badge footer-meta-badge--interactive" id="footer-btn-badge-formats" title="Click to view all resume templates">
-            OFFICIAL AMITY, JAKE'S &amp; MORE FORMATS &rarr;
+          <button type="button" class="footer-meta-badge footer-meta-badge--interactive" id="footer-btn-badge-formats" title="Click to preview all resume formats">
+            OFFICIAL AMITY FORMAT AND MANY MORE &rarr;
           </button>
         </div>
 
@@ -68,7 +68,7 @@ export function renderFooter({ onNavigate, onShowTemplates } = {}) {
       <!-- Bottom Bar -->
       <div class="footer-bottom">
         <div class="footer-copy">
-          &copy; ${new Date().getFullYear()} ur-CV &bull; Official Formats for Amity Students &amp; Software Engineers
+          &copy; ${new Date().getFullYear()} ur-CV &bull; Official Amity format and many more
         </div>
         <div class="footer-disclaimer">
           Client-Side Only &bull; Zero Server Storage &bull; Private &amp; Secure
@@ -88,16 +88,16 @@ export function renderFooter({ onNavigate, onShowTemplates } = {}) {
     });
   }
 
-  // Attach template modal openers
-  if (onShowTemplates) {
+  // Attach preview modal openers
+  if (onShowPreview) {
     footer.querySelector('#footer-btn-badge-formats')?.addEventListener('click', (e) => {
       e.preventDefault();
-      onShowTemplates();
+      onShowPreview();
     });
 
     footer.querySelector('#footer-btn-all-formats')?.addEventListener('click', (e) => {
       e.preventDefault();
-      onShowTemplates();
+      onShowPreview();
     });
   }
 

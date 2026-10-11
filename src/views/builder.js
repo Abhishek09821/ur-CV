@@ -5,6 +5,7 @@
 
 import { renderPreview, buildAmityResumeHTML } from './preview.js';
 import { openObjectiveModal } from '../components/objective-modal.js';
+import { openPhotoCompressorModal } from '../components/photo-compressor-modal.js';
 import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
 const SECTIONS = [
@@ -194,19 +195,28 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
     attachInputListener('input-phone', (v) => store.updatePersonal('phone', v));
     attachInputListener('input-email', (v) => store.updatePersonal('email', v));
 
-    // Passport photo upload with 1MB limit check
+    // Passport photo upload with 1MB limit check + automatic compressor fallback
     const photoInput = container.querySelector('#input-photo');
     if (photoInput) {
       photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
           if (file.size > 1024 * 1024) {
-            toast.show('Photo file exceeds 1MB limit. Please upload an image under 1MB.', 'error');
+            toast.show('Photo exceeds 1MB limit. Opening free photo compressor...', 'warning');
+            openPhotoCompressorModal({
+              initialFile: file,
+              toast,
+              onApply: (compressedDataUrl) => {
+                store.setPhoto(compressedDataUrl);
+                buildUI();
+                toast.show('Compressed photo applied (under 1MB)!', 'success');
+              },
+            });
             photoInput.value = '';
             return;
           }
-          if (!['image/jpeg', 'image/png'].includes(file.type)) {
-            toast.show('Only JPEG and PNG photos are supported.', 'error');
+          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            toast.show('Only JPEG, PNG and WEBP photos are supported.', 'error');
             photoInput.value = '';
             return;
           }
@@ -220,6 +230,18 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
         }
       });
     }
+
+    // Direct Photo Compressor trigger button
+    container.querySelector('#btn-open-compressor')?.addEventListener('click', () => {
+      openPhotoCompressorModal({
+        toast,
+        onApply: (compressedDataUrl) => {
+          store.setPhoto(compressedDataUrl);
+          buildUI();
+          toast.show('Compressed photo applied (under 1MB)!', 'success');
+        },
+      });
+    });
 
     container.querySelector('#btn-remove-photo')?.addEventListener('click', () => {
       store.setPhoto(null);
@@ -532,6 +554,11 @@ function renderPersonalForm(data, isActive) {
             ${p.photo ? '<button class="btn btn--sm btn--red" id="btn-remove-photo">Remove</button>' : ''}
           </div>
           <p class="form-hint">JPEG or PNG. Strictly max 1MB limit. Cropped to passport proportions on the top-right.</p>
+          <div class="photo-compressor-hint-wrap mt-xs">
+            <button type="button" class="btn-compress-link" id="btn-open-compressor">
+              Having trouble to add photo? <span>Click here to compress for free &rarr;</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
