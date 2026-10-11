@@ -14,6 +14,13 @@ import { jsPDF } from 'jspdf';
 import { AMITY_OFFICIAL_LOGO_DATA_URL } from '../assets/amity-assets.js';
 
 export function generateVectorPDF(data) {
+  if (data && data.template === 'jakes') {
+    return generateJakesVectorPDF(data);
+  }
+  return generateAmityVectorPDF(data);
+}
+
+function generateAmityVectorPDF(data) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   const PAGE_WIDTH = 595.28;
   const PAGE_HEIGHT = 841.89;
@@ -168,10 +175,10 @@ export function generateVectorPDF(data) {
   // ================= 1. HEADER =================
   const p = data.personal || {};
 
-  // Amity Logo on Left
+  // Amity Logo on Left (matches photo dimensions: 58 x 68 pt)
   try {
     if (AMITY_OFFICIAL_LOGO_DATA_URL) {
-      doc.addImage(AMITY_OFFICIAL_LOGO_DATA_URL, 'JPEG', X_LEFT, curY, 56, 64);
+      doc.addImage(AMITY_OFFICIAL_LOGO_DATA_URL, 'JPEG', X_LEFT, curY, 58, 68);
     }
   } catch (e) {
     console.warn('Amity logo add warning:', e);
@@ -473,10 +480,362 @@ export function generateVectorPDF(data) {
 }
 
 /**
+ * Jake's Resume Vector PDF Generator
+ * Replicates Overleaf / LaTeX Software Engineer Single-Page Standard
+ */
+function generateJakesVectorPDF(data) {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  const PAGE_WIDTH = 595.28;
+  const PAGE_HEIGHT = 841.89;
+  const X_LEFT = 42;
+  const CONTENT_WIDTH = 511.28;
+  const PAGE_BOTTOM = 812;
+  const TOP_MARGIN_P2 = 36;
+
+  let curY = 36;
+
+  function checkBreak(neededHeight) {
+    if (curY + neededHeight > PAGE_BOTTOM) {
+      doc.addPage();
+      curY = TOP_MARGIN_P2;
+      return true;
+    }
+    return false;
+  }
+
+  function renderJakesSectionHeader(title) {
+    curY += 5;
+    checkBreak(22);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title.toUpperCase(), X_LEFT, curY);
+    const lineY = curY + 2.5;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.75);
+    doc.line(X_LEFT, lineY, X_LEFT + CONTENT_WIDTH, lineY);
+    curY = lineY + 9;
+  }
+
+  function measureTokens(tokens, maxWidth) {
+    const words = [];
+    tokens.forEach((tok) => {
+      const isBold = !!tok.bold;
+      const isItalic = !!tok.italic;
+      const fontStyle = isBold && isItalic ? 'bolditalic' : isBold ? 'bold' : isItalic ? 'italic' : 'normal';
+      doc.setFont('times', fontStyle);
+      doc.setFontSize(tok.fontSize || 9.5);
+      const rawWords = String(tok.text || '').split(/(\s+)/);
+      rawWords.forEach((w) => {
+        if (!w) return;
+        if (/^\s+$/.test(w)) {
+          if (words.length > 0) words[words.length - 1].hasTrailingSpace = true;
+        } else {
+          words.push({
+            word: w,
+            fontStyle,
+            fontSize: tok.fontSize || 9.5,
+            color: tok.color || [0, 0, 0],
+            link: tok.link || null,
+            width: doc.getTextWidth(w),
+            spaceWidth: doc.getTextWidth(' '),
+          });
+        }
+      });
+    });
+
+    const lines = [];
+    let currentLine = [];
+    let currentLineWidth = 0;
+    words.forEach((w) => {
+      const addedWidth = (currentLine.length > 0 ? currentLine[currentLine.length - 1].spaceWidth : 0) + w.width;
+      if (currentLine.length > 0 && currentLineWidth + addedWidth > maxWidth) {
+        lines.push(currentLine);
+        currentLine = [w];
+        currentLineWidth = w.width;
+      } else {
+        currentLine.push(w);
+        currentLineWidth += addedWidth;
+      }
+    });
+    if (currentLine.length > 0) lines.push(currentLine);
+    return lines;
+  }
+
+  function drawLines(lines, startX, maxWidth, lineHeight, options = {}) {
+    lines.forEach((line, lineIdx) => {
+      const isLastLine = lineIdx === lines.length - 1;
+      let curX = startX;
+      let extraSpace = 0;
+      if (options.justify && !isLastLine && line.length > 1) {
+        let totalWordsW = 0;
+        line.forEach((item) => (totalWordsW += item.width));
+        const slots = line.length - 1;
+        const remainingW = maxWidth - totalWordsW;
+        extraSpace = remainingW / slots - line[0].spaceWidth;
+        if (extraSpace < 0) extraSpace = 0;
+      }
+
+      line.forEach((item, itemIdx) => {
+        doc.setFont('times', item.fontStyle);
+        doc.setFontSize(item.fontSize);
+        doc.setTextColor(item.color[0], item.color[1], item.color[2]);
+        doc.text(item.word, curX, curY);
+
+        if (item.link) {
+          doc.link(curX, curY - item.fontSize + 1, item.width, item.fontSize + 1, { url: item.link });
+        }
+
+        const sp = item.spaceWidth + (options.justify && !isLastLine ? extraSpace : 0);
+        curX += item.width + (itemIdx < line.length - 1 ? sp : 0);
+      });
+
+      if (lineIdx < lines.length - 1) {
+        curY += lineHeight;
+      }
+    });
+  }
+
+  function renderParagraph(tokens, startX, maxWidth, lineHeight, options = {}) {
+    const lines = measureTokens(tokens, maxWidth);
+    checkBreak(lines.length * lineHeight + 3);
+    drawLines(lines, startX, maxWidth, lineHeight, options);
+    curY += lineHeight;
+  }
+
+  function renderBullet(tokens, options = {}) {
+    const bulletX = X_LEFT + 8;
+    const textX = X_LEFT + 18;
+    const maxWidth = CONTENT_WIDTH - 18;
+    const lineHeight = 11.5;
+
+    const lines = measureTokens(tokens, maxWidth);
+    checkBreak(lines.length * lineHeight + 3);
+
+    doc.setFont('times', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text('•', bulletX, curY);
+
+    drawLines(lines, textX, maxWidth, lineHeight, options);
+    curY += lineHeight + 1;
+  }
+
+  // ================= 1. HEADER =================
+  const p = data.personal || {};
+  doc.setFont('times', 'bold');
+  doc.setFontSize(21);
+  doc.setTextColor(0, 0, 0);
+  const candName = p.fullName || 'Abhishek Tiwari';
+  doc.text(candName, PAGE_WIDTH / 2, curY, { align: 'center' });
+  curY += 13;
+
+  // Contact line: Address | Phone | Email
+  const contactParts = [];
+  if (p.address) contactParts.push(p.address);
+  if (p.phone) contactParts.push(p.phone);
+  if (p.email) contactParts.push(p.email);
+
+  if (contactParts.length > 0) {
+    doc.setFont('times', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(0, 0, 0);
+    const contactStr = contactParts.join(' | ');
+    doc.text(contactStr, PAGE_WIDTH / 2, curY, { align: 'center' });
+    curY += 11;
+  }
+
+  // Links line: GitHub | LinkedIn | LeetCode
+  const links = data.links || [];
+  if (links.length > 0) {
+    const linkTokens = [];
+    links.forEach((l, idx) => {
+      linkTokens.push({ text: l.label || l.url, link: l.url, color: [0, 0, 0], fontSize: 9.5 });
+      if (idx < links.length - 1) {
+        linkTokens.push({ text: ' | ', color: [0, 0, 0], fontSize: 9.5 });
+      }
+    });
+
+    let totalW = 0;
+    linkTokens.forEach((t) => {
+      doc.setFont('times', 'normal');
+      doc.setFontSize(9.5);
+      totalW += doc.getTextWidth(t.text);
+    });
+    let linkCurX = (PAGE_WIDTH - totalW) / 2;
+    linkTokens.forEach((t) => {
+      doc.setFont('times', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(t.color[0], t.color[1], t.color[2]);
+      doc.text(t.text, linkCurX, curY);
+      const w = doc.getTextWidth(t.text);
+      if (t.link) {
+        doc.link(linkCurX, curY - 8, w, 9, { url: t.link });
+      }
+      linkCurX += w;
+    });
+    curY += 11;
+  }
+
+  // ================= 2. PROFESSIONAL SUMMARY =================
+  if (data.objective) {
+    renderJakesSectionHeader('PROFESSIONAL SUMMARY');
+    renderParagraph(
+      [{ text: data.objective, fontSize: 9.5 }],
+      X_LEFT,
+      CONTENT_WIDTH,
+      11.8,
+      { justify: true }
+    );
+  }
+
+  // ================= 3. EDUCATION =================
+  const academic = data.academic || [];
+  if (academic.length > 0) {
+    renderJakesSectionHeader('EDUCATION');
+    academic.forEach((item) => {
+      const cleanText = String(item).replace(/^[•\-\*]\s*/, '');
+      renderParagraph(
+        [{ text: cleanText, fontSize: 9.5 }],
+        X_LEFT,
+        CONTENT_WIDTH,
+        11.5,
+        { justify: true }
+      );
+      curY -= 1;
+    });
+  }
+
+  // ================= 4. PROFESSIONAL EXPERIENCE =================
+  const experience = data.experience || [];
+  if (experience.length > 0) {
+    renderJakesSectionHeader('PROFESSIONAL EXPERIENCE');
+    experience.forEach((exp) => {
+      checkBreak(28);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.8);
+      doc.setTextColor(0, 0, 0);
+      const titleStr = exp.title || '';
+      doc.text(titleStr, X_LEFT, curY);
+      const leftOffset = doc.getTextWidth(titleStr);
+
+      if (exp.company) {
+        doc.setFont('times', 'normal');
+        const compStr = ' | ' + exp.company;
+        doc.text(compStr, X_LEFT + leftOffset, curY);
+      }
+
+      if (exp.duration) {
+        doc.setFont('times', 'normal');
+        doc.setFontSize(9.5);
+        doc.text(exp.duration, X_LEFT + CONTENT_WIDTH, curY, { align: 'right' });
+      }
+
+      curY += 11.5;
+
+      if (exp.bullets && exp.bullets.length > 0) {
+        exp.bullets.filter(Boolean).forEach((b) => {
+          const cleanB = String(b).replace(/^[•\-\*]\s*/, '');
+          renderBullet([{ text: cleanB, fontSize: 9.5 }], { justify: true });
+        });
+      }
+      curY += 2;
+    });
+  }
+
+  // ================= 5. PROJECTS =================
+  const projects = data.projects || [];
+  if (projects.length > 0) {
+    renderJakesSectionHeader('PROJECTS');
+    projects.forEach((proj) => {
+      checkBreak(28);
+      doc.setFont('times', 'bold');
+      doc.setFontSize(9.8);
+      doc.setTextColor(0, 0, 0);
+      const projName = proj.name || '';
+      doc.text(projName, X_LEFT, curY);
+      const nameW = doc.getTextWidth(projName);
+
+      if (proj.techStack) {
+        doc.setFont('times', 'normal');
+        doc.setFontSize(9.5);
+        doc.text(' ' + proj.techStack, X_LEFT + nameW, curY);
+      }
+      curY += 11.5;
+
+      if (proj.bullets && proj.bullets.length > 0) {
+        proj.bullets.filter(Boolean).forEach((b) => {
+          const cleanB = String(b).replace(/^[•\-\*]\s*/, '');
+          renderBullet([{ text: cleanB, fontSize: 9.5 }], { justify: true });
+        });
+      }
+      curY += 2;
+    });
+  }
+
+  // ================= 6. TECHNICAL SKILLS =================
+  const skills = data.skills || [];
+  if (skills.length > 0) {
+    renderJakesSectionHeader('TECHNICAL SKILLS');
+    skills.forEach((s) => {
+      const tokens = [
+        { text: (s.category || '') + ': ', bold: true, fontSize: 9.5 },
+        { text: s.skills || '', fontSize: 9.5 },
+      ];
+      renderParagraph(tokens, X_LEFT, CONTENT_WIDTH, 11.5, { justify: true });
+      curY -= 1;
+    });
+  }
+
+  // ================= 7. CERTIFICATIONS & ACHIEVEMENTS =================
+  const awards = data.awards || [];
+  const leadership = data.leadership || [];
+  if (awards.length > 0 || leadership.length > 0) {
+    renderJakesSectionHeader('CERTIFICATIONS & ACHIEVEMENTS');
+    if (awards.length > 0) {
+      const certText = awards.map((a) => String(a).replace(/^[•\-\*]\s*/, '')).join('; ') + '.';
+      renderParagraph(
+        [
+          { text: 'Certifications: ', bold: true, fontSize: 9.5 },
+          { text: certText, fontSize: 9.5 },
+        ],
+        X_LEFT,
+        CONTENT_WIDTH,
+        11.5,
+        { justify: true }
+      );
+      curY -= 1;
+    }
+    if (leadership.length > 0) {
+      const leadTokens = [{ text: 'Achievements: ', bold: true, fontSize: 9.5 }];
+      leadership.forEach((lead, idx) => {
+        if (lead.title) {
+          leadTokens.push({ text: lead.title + ': ', bold: true, fontSize: 9.5 });
+        }
+        leadTokens.push({ text: lead.description || '', fontSize: 9.5 });
+        if (idx < leadership.length - 1) {
+          leadTokens.push({ text: '; ', fontSize: 9.5 });
+        } else {
+          leadTokens.push({ text: '.', fontSize: 9.5 });
+        }
+      });
+      renderParagraph(leadTokens, X_LEFT, CONTENT_WIDTH, 11.5, { justify: true });
+    }
+  }
+
+  return doc;
+}
+
+/**
  * Downloads the 100% Vector & Searchable PDF directly
  */
 export async function downloadVectorPDF(data, fileName, toast) {
   try {
+    const isJakes = data && data.template === 'jakes';
+    const candName = (data?.personal?.fullName || 'Resume').replace(/\s+/g, '_');
+    const defaultName = `${candName}_${isJakes ? 'Jakes_Resume' : 'Amity_Resume'}.pdf`;
+    const finalFileName = fileName || defaultName;
+
     if (toast) toast.show('Generating 100% Searchable Vector PDF...', 'info');
 
     const doc = generateVectorPDF(data);
@@ -485,13 +844,13 @@ export async function downloadVectorPDF(data, fileName, toast) {
     const blobUrl = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = fileName;
+    link.download = finalFileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
 
-    if (toast) toast.show(`Downloaded: ${fileName} (Searchable Vector PDF)`, 'success');
+    if (toast) toast.show(`Downloaded: ${finalFileName} (Searchable Vector PDF)`, 'success');
   } catch (err) {
     console.error('Vector PDF generation error:', err);
     if (toast) toast.show('Download issue. Opening Native Print for Vector PDF...', 'warning');

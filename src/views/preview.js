@@ -17,13 +17,15 @@
  */
 
 import { AMITY_OFFICIAL_LOGO_DATA_URL } from '../assets/amity-assets.js';
+import { buildJakesResumeHTML } from './jakes-preview.js';
 
 export function renderPreview(data) {
   if (!data) return '';
+  const isJakes = data.template === 'jakes';
   return `
-    <div class="amity-resume-wrapper">
-      <div class="amity-resume-sheet" id="amity-sheet-preview">
-        ${buildAmityResumeHTML(data)}
+    <div class="amity-resume-wrapper ${isJakes ? 'theme-jakes' : 'theme-amity'}">
+      <div class="${isJakes ? 'jakes-resume-sheet' : 'amity-resume-sheet'}" id="amity-sheet-preview">
+        ${isJakes ? buildJakesResumeHTML(data) : buildAmityResumeHTML(data)}
       </div>
     </div>
   `;

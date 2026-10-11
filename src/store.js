@@ -1,6 +1,7 @@
 import { AMITY_DEFAULT_PHOTO_DATA_URL } from './assets/amity-assets.js';
 
 export const UNIVERSAL_DEFAULT_RESUME = {
+  template: 'amity', // 'amity' | 'jakes'
   personal: {
     fullName: 'Abhishek Tiwari',
     address: 'Gayatri Vihar Colony, Pinto Park Rd, Gwalior 474005',
@@ -170,6 +171,15 @@ export class ResumeStore {
 
   reset() {
     this.data = JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME));
+    this.notify();
+  }
+
+  getTemplate() {
+    return this.data.template || 'amity';
+  }
+
+  setTemplate(template) {
+    this.data.template = template;
     this.notify();
   }
 
