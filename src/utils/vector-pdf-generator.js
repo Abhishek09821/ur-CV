@@ -147,9 +147,9 @@ export function generateVectorPDF(data) {
   }
 
   function renderBullet(tokens, options = {}) {
-    const bulletX = X_LEFT + 3;
-    const textX = X_LEFT + 12;
-    const maxWidth = CONTENT_WIDTH - 12;
+    const bulletX = X_LEFT + 15;
+    const textX = X_LEFT + 25;
+    const maxWidth = CONTENT_WIDTH - 25;
     const lineHeight = 11.5;
 
     const lines = measureTokens(tokens, maxWidth);

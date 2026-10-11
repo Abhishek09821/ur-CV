@@ -118,7 +118,7 @@ export function buildAmityResumeHTML(data) {
                 ${exp.duration ? `<div class="amity-item-sub"><em>${esc(exp.duration)}</em></div>` : ''}
                 ${exp.bullets && exp.bullets.filter(Boolean).length > 0 ? `
                   <ul class="amity-bullet-list">
-                    ${exp.bullets.filter(Boolean).map((b) => `<li>${esc(b)}</li>`).join('')}
+                    ${exp.bullets.filter(Boolean).map((b) => `<li>${esc(String(b).replace(/^[•\-\*]\s*/, ''))}</li>`).join('')}
                   </ul>
                 ` : ''}
               </div>
@@ -144,7 +144,7 @@ export function buildAmityResumeHTML(data) {
                 ` : ''}
                 ${proj.bullets && proj.bullets.filter(Boolean).length > 0 ? `
                   <ul class="amity-bullet-list">
-                    ${proj.bullets.filter(Boolean).map((b) => `<li>${esc(b)}</li>`).join('')}
+                    ${proj.bullets.filter(Boolean).map((b) => `<li>${esc(String(b).replace(/^[•\-\*]\s*/, ''))}</li>`).join('')}
                   </ul>
                 ` : ''}
               </div>
