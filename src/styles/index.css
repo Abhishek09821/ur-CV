@@ -572,6 +572,16 @@ body {
   z-index: 100;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.header-mobile-back {
+  display: none;
+}
+
 .header-logo {
   font-family: var(--font-display);
   font-size: 1.4rem;
@@ -1032,6 +1042,25 @@ body {
   width: 100%;
 }
 
+/* Print Pagination Table (Hidden on screen, repeats header/footer spacers across printed pages) */
+.amity-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: none;
+  background: transparent;
+}
+
+.amity-print-table thead,
+.amity-print-table tfoot {
+  display: none;
+}
+
+.amity-print-table td {
+  padding: 0;
+  border: none;
+}
+
 /* Header */
 .amity-header {
   display: grid;
@@ -1103,7 +1132,7 @@ body {
 
 /* Section Header Bar */
 .amity-section {
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   page-break-inside: avoid;
 }
 
@@ -1114,14 +1143,26 @@ body {
   font-size: 10.5pt;
   font-weight: bold;
   text-transform: uppercase;
-  padding: 2.5px 6px;
-  margin: 7px 0 3px 0;
+  padding: 2px 6px;
+  line-height: 1.25;
+  margin: 6px 0 5px 0;
   letter-spacing: 0.3px;
   box-sizing: border-box;
 }
 
 .amity-content {
   padding: 0 1px;
+}
+
+/* Ensure equal upper and lower spacing: last content element within section has no bottom margin */
+.amity-content > *:last-child,
+.amity-item:last-child,
+.amity-bullet-list:last-child {
+  margin-bottom: 0 !important;
+}
+
+.amity-bullet-list li:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Text and Bullets */
@@ -1191,14 +1232,14 @@ body {
 
 /* Self Declaration */
 .amity-declaration-section {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .amity-declaration-footer {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: 14px;
+  margin-top: 10px;
   font-family: 'Times New Roman', Times, serif;
   font-size: 10pt;
   color: #000000;
@@ -1214,6 +1255,7 @@ body {
   height: 38px;
   background: #666666;
   margin: 0 20px;
+  display: block;
 }
 
 .amity-decl-right {
@@ -1617,12 +1659,33 @@ body {
     gap: 6px;
   }
 
-  .progress-step .step-label {
+  .progress-bar {
+    scrollbar-width: none;
+  }
+
+  .progress-bar::-webkit-scrollbar {
     display: none;
   }
 
+  .progress-step {
+    flex: 0 0 auto;
+    min-width: 85px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+
   .progress-step .step-number {
-    font-size: 1rem;
+    font-size: 0.82rem;
+    margin-bottom: 2px;
+  }
+
+  .progress-step .step-label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .tabs {
@@ -1895,18 +1958,61 @@ body {
     min-height: 297mm !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 16mm 20mm !important;
+    padding: 0 20mm !important;
     margin: 0 auto !important;
     background: #FFFFFF !important;
     box-sizing: border-box !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
+  }
+
+  .amity-print-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    border: none !important;
+  }
+
+  .amity-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .amity-print-header-space {
+    height: 14mm !important;
+    display: block !important;
+  }
+
+  .amity-print-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  .amity-print-footer-space {
+    height: 14mm !important;
+    display: block !important;
+  }
+
+  .amity-print-table td {
+    padding: 0 !important;
+    border: none !important;
   }
 
   .amity-resume-container {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .amity-header {
+    display: grid !important;
+    grid-template-columns: 85px 1fr 90px !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   .amity-bar {
@@ -1914,6 +2020,20 @@ body {
     print-color-adjust: exact !important;
     background: #2C2E30 !important;
     color: #FFFFFF !important;
+    margin: 6px 0 5px 0 !important;
+    padding: 2px 6px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .amity-content > *:last-child,
+  .amity-item:last-child,
+  .amity-bullet-list:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .amity-bullet-list li:last-child {
+    margin-bottom: 0 !important;
   }
 
   .amity-link-blue {
@@ -1922,8 +2042,9 @@ body {
   }
 
   .amity-section {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    margin-bottom: 6px !important;
   }
 
   .amity-item {
@@ -1931,9 +2052,24 @@ body {
     break-inside: avoid !important;
   }
 
+  .amity-bullet-list li {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
   .amity-declaration-section {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  .amity-decl-center-bar {
+    width: 1px !important;
+    height: 38px !important;
+    background: #666666 !important;
+    margin: 0 20px !important;
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 
@@ -2249,7 +2385,8 @@ body {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: var(--space-sm);
+    padding-bottom: 0;
+    margin-bottom: var(--space-sm);
   }
 
   .amity-resume-wrapper {
@@ -2337,29 +2474,71 @@ body {
   }
 }
 
+@media screen and (max-width: 768px) {
+  .header-actions #btn-back {
+    display: none !important;
+  }
+}
+
 @media screen and (max-width: 600px) {
   .header {
     padding: var(--space-xs) var(--space-sm);
   }
 
-  .header-logo {
-    font-size: 1.1rem;
+  .header-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
 
-  .header-actions {
-    gap: 4px;
-    flex-wrap: nowrap;
+  /* On builder view on mobile: ur-CV logo is replaced by Back button on the left */
+  .header--builder .header-logo--builder {
+    display: none !important;
   }
 
-  .header-actions .btn {
+  .header--builder .header-mobile-back {
+    display: inline-flex !important;
     padding: 5px 8px;
     font-size: 0.72rem;
     box-shadow: 2px 2px 0 var(--border-color);
   }
 
+  /* Remove print button on mobile */
+  .header-actions #btn-header-print,
+  .builder-actions-toolbar #btn-print-pdf {
+    display: none !important;
+  }
+
+  .header-logo {
+    font-size: 1.05rem;
+    flex-shrink: 0;
+  }
+
+  .header-actions {
+    gap: 4px;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-actions .btn {
+    padding: 5px 7px;
+    font-size: 0.7rem;
+    box-shadow: 2px 2px 0 var(--border-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   .header-actions #btn-save,
   .header-actions #btn-delete {
-    display: none;
+    display: inline-flex !important;
   }
 
   .mode-card--single {

@@ -3,11 +3,18 @@
  */
 export function renderHeader({ currentView, onHome, onBack, onSave, onDelete }) {
   const header = document.createElement('header');
-  header.className = 'header';
+  header.className = `header ${currentView === 'builder' ? 'header--builder' : ''}`;
 
   header.innerHTML = `
-    <div class="header-logo" id="header-logo-btn" title="ur-CV Homepage" style="cursor:pointer;">
-      <span class="logo-accent">ur</span>-CV
+    <div class="header-left">
+      ${
+        currentView === 'builder'
+          ? `<button class="btn btn--sm btn--white header-mobile-back" id="btn-mobile-back" title="Back to home">&larr; Back</button>`
+          : ''
+      }
+      <div class="header-logo ${currentView === 'builder' ? 'header-logo--builder' : ''}" id="header-logo-btn" title="ur-CV Homepage" style="cursor:pointer;">
+        <span class="logo-accent">ur</span>-CV
+      </div>
     </div>
     <div class="header-actions" id="header-actions">
       ${
@@ -30,6 +37,7 @@ export function renderHeader({ currentView, onHome, onBack, onSave, onDelete }) 
     });
 
     if (currentView === 'builder') {
+      header.querySelector('#btn-mobile-back')?.addEventListener('click', onBack);
       header.querySelector('#btn-back')?.addEventListener('click', onBack);
       header.querySelector('#btn-save')?.addEventListener('click', onSave);
       header.querySelector('#btn-delete')?.addEventListener('click', onDelete);

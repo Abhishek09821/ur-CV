@@ -44,9 +44,18 @@ export function buildAmityResumeHTML(data) {
   const declaration = data.declaration || {};
 
   return `
-    <div class="amity-resume-container">
-      <!-- ================= HEADER ================= -->
-      <header class="amity-header">
+    <table class="amity-print-table">
+      <thead class="amity-print-thead">
+        <tr>
+          <td><div class="amity-print-header-space"></div></td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="amity-resume-container">
+              <!-- ================= HEADER ================= -->
+              <header class="amity-header">
         <div class="amity-header-left">
           <img src="${AMITY_OFFICIAL_LOGO_DATA_URL}" class="amity-shield-logo" alt="Amity University Logo" />
         </div>
@@ -217,7 +226,16 @@ export function buildAmityResumeHTML(data) {
           </div>
         </section>
       ` : ''}
-    </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+      <tfoot class="amity-print-tfoot">
+        <tr>
+          <td><div class="amity-print-footer-space"></div></td>
+        </tr>
+      </tfoot>
+    </table>
   `;
 }
 

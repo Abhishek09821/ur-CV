@@ -48,19 +48,8 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       </div>
 
       <div class="builder active">
-        <!-- Sidebar Form & Navigation -->
+        <!-- Sidebar Form Panels (Starts directly at top for quick editing) -->
         <div class="builder-sidebar ${mobileView === 'preview' ? 'mobile-hidden' : ''}">
-          <nav class="section-nav">
-            ${SECTIONS.map((s) => `
-              <div class="section-nav-item ${s.id === activeSection ? 'active' : ''} ${completion[s.id] ? 'completed' : ''}" data-section="${s.id}">
-                <span class="nav-step">${s.step}</span>
-                <span class="nav-text">${s.label}</span>
-                ${s.required ? '<span class="required" style="font-size:0.65rem;margin-left:auto;">REQ</span>' : ''}
-                <span class="nav-status">${completion[s.id] ? '✓' : '○'}</span>
-              </div>
-            `).join('')}
-          </nav>
-
           <!-- Form Panels -->
           <div class="form-container">
             ${renderPersonalForm(data, activeSection === 'personal')}
@@ -99,6 +88,28 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
     `;
 
     attachEvents();
+    scrollActiveStepIntoView(true);
+  }
+
+  function scrollActiveStepIntoView(smooth = true) {
+    setTimeout(() => {
+      const progressBar = container.querySelector('.progress-bar');
+      const activeStep = container.querySelector('.progress-step.active');
+      if (!progressBar || !activeStep) return;
+
+      const barRect = progressBar.getBoundingClientRect();
+      const stepRect = activeStep.getBoundingClientRect();
+
+      const currentScroll = progressBar.scrollLeft;
+      const stepRelativeLeft = stepRect.left - barRect.left;
+      const centerTarget = (barRect.width - stepRect.width) / 2;
+      const scrollTarget = currentScroll + (stepRelativeLeft - centerTarget);
+
+      progressBar.scrollTo({
+        left: Math.max(0, Math.round(scrollTarget)),
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }, 40);
   }
 
   function updatePreviewOnly() {
@@ -109,12 +120,6 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
     const completion = store.getCompletionStatus();
     SECTIONS.forEach((s) => {
       const isDone = completion[s.id];
-      const navItem = container.querySelector(`.section-nav-item[data-section="${s.id}"]`);
-      if (navItem) {
-        navItem.classList.toggle('completed', !!isDone);
-        const statusSpan = navItem.querySelector('.nav-status');
-        if (statusSpan) statusSpan.textContent = isDone ? '✓' : '○';
-      }
       const stepItem = container.querySelector(`.progress-step[data-section="${s.id}"]`);
       if (stepItem) {
         stepItem.classList.toggle('completed', !!isDone);
@@ -145,6 +150,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       if (currentIdx > 0) {
         activeSection = SECTIONS[currentIdx - 1].id;
         buildUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
 
@@ -153,6 +159,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       if (currentIdx < SECTIONS.length - 1) {
         activeSection = SECTIONS[currentIdx + 1].id;
         buildUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
 
