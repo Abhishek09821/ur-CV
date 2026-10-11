@@ -1,5 +1,5 @@
 /**
- * Career Objective AI Generator Modal
+ * Career Objective Generator Modal
  *
  * Pop-up interface where users paste a Job Description (JD),
  * generate multiple distinct, tailored career objectives,
@@ -10,7 +10,7 @@ import { generateObjectivesFromJD } from '../utils/objective-generator.js';
 
 const SAMPLE_JD = `Job Title: Associate Software Engineer / SDE-1
 About the Role:
-We are looking for a passionate and motivated Software Engineer to join our core product engineering team. You will design, build, and deploy high-performance full-stack web applications and scalable APIs.
+We are looking for a passionate Software Engineer to join our core product engineering team. You will design, build, and deploy high-performance full-stack web applications and scalable APIs.
 
 Key Responsibilities:
 - Develop robust, scalable web services using Python, Java, or Node.js.
@@ -45,15 +45,15 @@ export function openObjectiveModal({ store, toast, onApply }) {
       <div class="modal-header">
         <div>
           <div class="flex items-center gap-xs">
-            <span class="badge badge--purple" style="font-size:0.75rem;">AI POWERED</span>
-            <span class="badge badge--yellow" style="font-size:0.75rem;">AMITY ATS READY</span>
+            <span class="badge badge--purple" style="font-size:0.75rem;">JD TAILORED</span>
+            <span class="badge badge--yellow" style="font-size:0.75rem;">AMITY ATS FORMAT</span>
           </div>
-          <h2 class="modal-title mt-xs" id="obj-modal-title">🎯 Career Objective Generator</h2>
+          <h2 class="modal-title mt-xs" id="obj-modal-title">Career Objective Generator</h2>
           <p class="form-hint" style="margin-top:2px;">
-            Paste your target Job Description (JD) to generate diverse, role-tailored objectives grounded in your profile.
+            Paste your target Job Description (JD) to generate diverse, role-tailored objectives grounded in your verified credentials.
           </p>
         </div>
-        <button class="modal-close" id="btn-modal-close" title="Close (ESC)">✕</button>
+        <button class="modal-close" id="btn-modal-close" title="Close (ESC)">&times;</button>
       </div>
 
       <!-- Modal Body -->
@@ -66,7 +66,7 @@ export function openObjectiveModal({ store, toast, onApply }) {
             </label>
             <div class="flex gap-xs">
               <button type="button" class="btn btn--sm btn--white" id="btn-sample-jd" title="Fill with a realistic tech JD for quick testing">
-                📋 Insert Sample JD
+                Insert Sample JD
               </button>
               <button type="button" class="btn btn--sm btn--white" id="btn-clear-jd" title="Clear input">
                 Clear
@@ -83,12 +83,12 @@ export function openObjectiveModal({ store, toast, onApply }) {
 
           <div class="flex items-center justify-between mt-xs">
             <span class="form-hint" id="jd-char-count">0 characters entered</span>
-            <span class="form-hint">Tip: Include role title & required skills for best alignment</span>
+            <span class="form-hint">Tip: Include role title and required technologies for optimal alignment</span>
           </div>
 
           <!-- Generate Action Button -->
           <button type="button" class="btn btn--purple btn--block mt-md" id="btn-generate-objectives">
-            ⚡ Generate Tailored Objectives
+            Generate Tailored Objectives
           </button>
         </div>
 
@@ -144,19 +144,17 @@ export function openObjectiveModal({ store, toast, onApply }) {
   function runGeneration(jdText) {
     generationCount++;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '⏳ Analyzing JD & Generating Diverse Variations...';
+    generateBtn.innerHTML = 'Analyzing requirements and generating variations...';
 
-    // Brief realistic processing feedback
     setTimeout(() => {
       currentResults = generateObjectivesFromJD(jdText, candidateData);
       renderResults(currentResults);
       generateBtn.disabled = false;
-      generateBtn.innerHTML = '⚡ Regenerate with Fresh Variations';
+      generateBtn.innerHTML = 'Regenerate with Fresh Variations';
       
-      // Smooth scroll to results
       resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      toast.show(`Generated 4 unique objective variations! (Run #${generationCount})`, 'success');
-    }, 280);
+      toast.show(`Generated 4 unique objective variations. (Run #${generationCount})`, 'success');
+    }, 250);
   }
 
   function renderResults(results) {
@@ -167,18 +165,18 @@ export function openObjectiveModal({ store, toast, onApply }) {
       <div class="obj-results-header mt-lg mb-md">
         <div class="flex items-center justify-between flex-wrap gap-xs">
           <div class="flex items-center gap-xs">
-            <span class="badge badge--green">✓ 4 TAILORED VARIATIONS READY</span>
+            <span class="badge badge--green">4 TAILORED VARIATIONS READY</span>
             <span class="badge badge--dark">Role: ${escapeHtml(parsed.targetRole)}</span>
           </div>
           <button type="button" class="btn btn--sm btn--yellow" id="btn-regenerate-more">
-            🔄 Regenerate New Phrasings
+            Regenerate New Phrasings
           </button>
         </div>
 
         <!-- Extracted Skills Cloud -->
         ${parsed.matchedTech && parsed.matchedTech.length > 0 ? `
           <div class="obj-extracted-box mt-sm">
-            <span class="obj-extracted-label">Identified JD Tech & Focus:</span>
+            <span class="obj-extracted-label">Identified JD Stack & Domain:</span>
             <div class="tag-cloud mt-xs">
               ${parsed.matchedTech.slice(0, 10).map((t) => `<span class="tag tag--yellow">${escapeHtml(t)}</span>`).join('')}
               <span class="tag tag--green">Domain: ${escapeHtml(parsed.targetDomain)}</span>
@@ -188,7 +186,7 @@ export function openObjectiveModal({ store, toast, onApply }) {
       </div>
 
       <p class="form-hint mb-md">
-        Each option emphasizes a different professional angle. You can edit the text directly before applying:
+        Each option emphasizes a distinct professional angle. You can review or edit the wording before applying:
       </p>
 
       <div class="obj-cards-grid">
@@ -216,10 +214,10 @@ export function openObjectiveModal({ store, toast, onApply }) {
 
             <div class="obj-card-actions">
               <button type="button" class="btn btn--sm btn--green btn-apply-objective" data-index="${idx}">
-                ✓ Use This Objective
+                Apply to Resume
               </button>
               <button type="button" class="btn btn--sm btn--white btn-copy-objective" data-index="${idx}" title="Copy to clipboard">
-                📋 Copy
+                Copy Text
               </button>
             </div>
           </div>
@@ -228,7 +226,7 @@ export function openObjectiveModal({ store, toast, onApply }) {
 
       <div class="flex justify-center mt-lg">
         <button type="button" class="btn btn--yellow" id="btn-regenerate-footer">
-          🔄 Need different wording? Generate 4 more variations
+          Generate 4 More Variations
         </button>
       </div>
     `;
@@ -252,7 +250,7 @@ export function openObjectiveModal({ store, toast, onApply }) {
         const text = resultsContainer.querySelector(`#textarea-opt-${idx}`)?.value || options[idx].text;
         try {
           await navigator.clipboard.writeText(text);
-          toast.show('Objective copied to clipboard!', 'success');
+          toast.show('Objective copied to clipboard.', 'success');
         } catch {
           toast.show('Failed to copy. Please copy manually.', 'error');
         }

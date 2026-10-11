@@ -318,7 +318,7 @@ export function generateObjectivesFromJD(jdText = '', candidateData = {}, option
     {
       id: 'tech-rigor',
       title: 'Technical Depth & Architecture',
-      tag: '🛠️ Core Technical',
+      tag: 'Technical Focus',
       badgeClass: 'badge--blue',
       description: 'Emphasizes clean code, scalable architecture, and hands-on tech stack proficiency.',
       text: buildTechnicalRigorObjective({
@@ -335,7 +335,7 @@ export function generateObjectivesFromJD(jdText = '', candidateData = {}, option
     {
       id: 'impact-product',
       title: 'Impact & Product-Driven',
-      tag: '💡 High Impact',
+      tag: 'Impact Driven',
       badgeClass: 'badge--green',
       description: 'Focuses on building robust user-centric products, problem-solving, and driving tangible outcomes.',
       text: buildImpactProductObjective({
@@ -352,7 +352,7 @@ export function generateObjectivesFromJD(jdText = '', candidateData = {}, option
     {
       id: 'agile-adaptable',
       title: 'Agile & Rapid Learner',
-      tag: '🚀 Agile & Fast-Paced',
+      tag: 'Agile & Adaptable',
       badgeClass: 'badge--yellow',
       description: 'Highlights quick adaptability to frameworks, teamwork, and enthusiasm in fast-evolving teams.',
       text: buildAgileAdaptableObjective({
@@ -369,7 +369,7 @@ export function generateObjectivesFromJD(jdText = '', candidateData = {}, option
     {
       id: 'placement-ready',
       title: 'Campus Placement & Growth',
-      tag: '🎓 Placement Standard',
+      tag: 'Placement Ready',
       badgeClass: 'badge--purple',
       description: 'Official Amity campus placement style balancing academic foundation, projects, and career ambition.',
       text: buildPlacementReadyObjective({

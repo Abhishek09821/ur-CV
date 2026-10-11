@@ -1,13 +1,6 @@
 /**
  * Builder View — The interactive editor for the Amity Placement Resume
  * Split layout: Left Editor Sidebar + Right Live A4 Preview
- * 
- * Implements:
- * - Direct element-scoped event binding (smooth typing without DOM re-render)
- * - 1MB photo upload constraint
- * - Pre-loaded universal Amity reference format
- * - Add/Edit/Remove controls for all sections
- * - Dual export: html2pdf file download + browser vector print
  */
 
 import { renderPreview, buildAmityResumeHTML } from './preview.js';
@@ -15,19 +8,19 @@ import { openObjectiveModal } from '../components/objective-modal.js';
 import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
 const SECTIONS = [
-  { id: 'personal', label: 'Header & Contact', icon: '👤', required: true },
-  { id: 'objective', label: 'Career Objective', icon: '🎯', required: true },
-  { id: 'academic', label: 'Academic Details', icon: '🎓', required: true },
-  { id: 'experience', label: 'Experience', icon: '💼', required: false },
-  { id: 'projects', label: 'Projects', icon: '🚀', required: false },
-  { id: 'skills', label: 'Technical Skills', icon: '⚡', required: true },
-  { id: 'awards', label: 'Awards & Achievements', icon: '🏆', required: false },
-  { id: 'leadership', label: 'Leadership & Initiative', icon: '👑', required: false },
-  { id: 'links', label: 'Links', icon: '🔗', required: false },
-  { id: 'declaration', label: 'Self Declaration', icon: '📝', required: true },
+  { id: 'personal', label: 'Header & Contact', step: '01', required: true },
+  { id: 'objective', label: 'Career Objective', step: '02', required: true },
+  { id: 'academic', label: 'Academic Details', step: '03', required: true },
+  { id: 'experience', label: 'Experience', step: '04', required: false },
+  { id: 'projects', label: 'Projects', step: '05', required: false },
+  { id: 'skills', label: 'Technical Skills', step: '06', required: true },
+  { id: 'awards', label: 'Awards & Honors', step: '07', required: false },
+  { id: 'leadership', label: 'Leadership', step: '08', required: false },
+  { id: 'links', label: 'Links', step: '09', required: false },
+  { id: 'declaration', label: 'Declaration', step: '10', required: true },
 ];
 
-export function renderBuilder({ store, mode, toast, onSave, onBack }) {
+export function renderBuilder({ store, toast, onSave, onBack }) {
   const container = document.createElement('div');
   container.className = 'builder-wrapper';
   let activeSection = 'personal';
@@ -38,18 +31,17 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
     const completion = store.getCompletionStatus();
 
     container.innerHTML = `
-      
       <!-- Mobile View Switcher -->
       <div class="builder-mobile-toggle">
-        <button class="toggle-btn ${mobileView === 'form' ? 'active' : ''}" data-view="form">✏️ Edit Form</button>
-        <button class="toggle-btn ${mobileView === 'preview' ? 'active' : ''}" data-view="preview">👁 Live Preview</button>
+        <button class="toggle-btn ${mobileView === 'form' ? 'active' : ''}" data-view="form">Edit Form</button>
+        <button class="toggle-btn ${mobileView === 'preview' ? 'active' : ''}" data-view="preview">Live Preview</button>
       </div>
 
       <!-- Top Progress Navigation Bar -->
       <div class="progress-bar">
         ${SECTIONS.map((s) => `
           <div class="progress-step ${s.id === activeSection ? 'active' : ''} ${completion[s.id] ? 'completed' : ''}" data-section="${s.id}">
-            <span class="step-number">${s.icon}</span>
+            <span class="step-number">${s.step}</span>
             <span class="step-label">${s.label}</span>
           </div>
         `).join('')}
@@ -61,7 +53,7 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
           <nav class="section-nav">
             ${SECTIONS.map((s) => `
               <div class="section-nav-item ${s.id === activeSection ? 'active' : ''} ${completion[s.id] ? 'completed' : ''}" data-section="${s.id}">
-                <span class="nav-icon">${s.icon}</span>
+                <span class="nav-step">${s.step}</span>
                 <span class="nav-text">${s.label}</span>
                 ${s.required ? '<span class="required" style="font-size:0.65rem;margin-left:auto;">REQ</span>' : ''}
                 <span class="nav-status">${completion[s.id] ? '✓' : '○'}</span>
@@ -85,15 +77,15 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
 
           <!-- Bottom Action Toolbar -->
           <div class="builder-actions-toolbar">
-            ${activeSection !== 'personal' ? '<button class="btn btn--white btn--sm" id="btn-prev-section">← Prev</button>' : ''}
-            ${activeSection !== 'declaration' ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next →</button>' : ''}
+            ${activeSection !== 'personal' ? '<button class="btn btn--white btn--sm" id="btn-prev-section">&larr; Prev</button>' : ''}
+            ${activeSection !== 'declaration' ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next &rarr;</button>' : ''}
             
             <div class="export-btn-group">
               <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download 100% Searchable Vector PDF (No cutoff, ATS-ready)">
-                📄 Download PDF
+                Download PDF
               </button>
               <button class="btn btn--yellow btn--sm" id="btn-print-pdf" title="Open Browser Native Print dialog for 100% Vector PDF">
-                🖨️ Native Print
+                Print
               </button>
             </div>
           </div>
@@ -147,31 +139,46 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    // Prev / Next buttons
+    // Prev / Next section buttons
     container.querySelector('#btn-prev-section')?.addEventListener('click', () => {
-      const idx = SECTIONS.findIndex((s) => s.id === activeSection);
-      if (idx > 0) {
-        activeSection = SECTIONS[idx - 1].id;
+      const currentIdx = SECTIONS.findIndex((s) => s.id === activeSection);
+      if (currentIdx > 0) {
+        activeSection = SECTIONS[currentIdx - 1].id;
         buildUI();
       }
     });
 
     container.querySelector('#btn-next-section')?.addEventListener('click', () => {
-      const idx = SECTIONS.findIndex((s) => s.id === activeSection);
-      if (idx < SECTIONS.length - 1) {
-        activeSection = SECTIONS[idx + 1].id;
+      const currentIdx = SECTIONS.findIndex((s) => s.id === activeSection);
+      if (currentIdx < SECTIONS.length - 1) {
+        activeSection = SECTIONS[currentIdx + 1].id;
         buildUI();
       }
     });
 
-    // PDF Export
-    container.querySelector('#btn-export-pdf')?.addEventListener('click', () => {
-      exportPDF(store, toast);
-    });
-
-    // Vector Print
+    // Direct Browser Vector Print
     container.querySelector('#btn-print-pdf')?.addEventListener('click', () => {
       window.print();
+    });
+
+    // Export PDF via 100% Vector jsPDF Generator (PRD Compliant)
+    container.querySelector('#btn-export-pdf')?.addEventListener('click', async () => {
+      const btn = container.querySelector('#btn-export-pdf');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Generating Vector PDF...';
+      btn.disabled = true;
+
+      try {
+        const resumeData = store.getData();
+        await downloadVectorPDF(resumeData);
+        toast.show('100% Vector PDF downloaded successfully.', 'success');
+      } catch (err) {
+        console.error('Vector PDF generation error:', err);
+        toast.show('Export failed: ' + (err.message || 'Unknown error'), 'error');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     });
 
     // ========== PERSONAL FORM ==========
@@ -180,14 +187,14 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
     attachInputListener('input-phone', (v) => store.updatePersonal('phone', v));
     attachInputListener('input-email', (v) => store.updatePersonal('email', v));
 
-    // Photo upload with strictly enforced 1MB limit per user request
+    // Passport photo upload with 1MB limit check
     const photoInput = container.querySelector('#input-photo');
     if (photoInput) {
       photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          if (file.size > 1 * 1024 * 1024) {
-            toast.show('Photo size must be under 1MB!', 'error');
+          if (file.size > 1024 * 1024) {
+            toast.show('Photo file exceeds 1MB limit. Please upload an image under 1MB.', 'error');
             photoInput.value = '';
             return;
           }
@@ -239,7 +246,7 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
             counter.textContent = `${generatedText.length} chars (${words} words)`;
           }
           updatePreviewOnly();
-          toast.show('✨ Career Objective applied to your resume!', 'success');
+          toast.show('Career Objective applied to your resume.', 'success');
         },
       });
     };
@@ -290,26 +297,29 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('[data-exp-bullet]').forEach((input) => {
-      const expIdx = parseInt(input.dataset.expIndex, 10);
-      const bulletIdx = parseInt(input.dataset.bulletIndex, 10);
-      input.addEventListener('input', () => {
-        store.updateExperienceBullet(expIdx, bulletIdx, input.value);
-        updatePreviewOnly();
-      });
-    });
-
     container.querySelectorAll('.exp-add-bullet').forEach((btn) => {
       btn.addEventListener('click', () => {
-        store.addExperienceBullet(parseInt(btn.dataset.expIndex, 10));
+        const expIdx = parseInt(btn.dataset.expIndex, 10);
+        store.addExperienceBullet(expIdx, '');
         buildUI();
       });
     });
 
     container.querySelectorAll('.exp-remove-bullet').forEach((btn) => {
       btn.addEventListener('click', () => {
-        store.removeExperienceBullet(parseInt(btn.dataset.expIndex, 10), parseInt(btn.dataset.bulletIndex, 10));
+        const expIdx = parseInt(btn.dataset.expIndex, 10);
+        const bulletIdx = parseInt(btn.dataset.bulletIndex, 10);
+        store.removeExperienceBullet(expIdx, bulletIdx);
         buildUI();
+      });
+    });
+
+    container.querySelectorAll('[data-exp-bullet]').forEach((input) => {
+      const expIdx = parseInt(input.dataset.expIndex, 10);
+      const bulletIdx = parseInt(input.dataset.bulletIndex, 10);
+      input.addEventListener('input', () => {
+        store.updateExperienceBullet(expIdx, bulletIdx, input.value);
+        updatePreviewOnly();
       });
     });
 
@@ -335,6 +345,23 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
+    container.querySelectorAll('.proj-add-bullet').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const projIdx = parseInt(btn.dataset.projIndex, 10);
+        store.addProjectBullet(projIdx, '');
+        buildUI();
+      });
+    });
+
+    container.querySelectorAll('.proj-remove-bullet').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const projIdx = parseInt(btn.dataset.projIndex, 10);
+        const bulletIdx = parseInt(btn.dataset.bulletIndex, 10);
+        store.removeProjectBullet(projIdx, bulletIdx);
+        buildUI();
+      });
+    });
+
     container.querySelectorAll('[data-proj-bullet]').forEach((input) => {
       const projIdx = parseInt(input.dataset.projIndex, 10);
       const bulletIdx = parseInt(input.dataset.bulletIndex, 10);
@@ -344,24 +371,17 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.proj-add-bullet').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.addProjectBullet(parseInt(btn.dataset.projIndex, 10));
-        buildUI();
-      });
-    });
-
-    container.querySelectorAll('.proj-remove-bullet').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.removeProjectBullet(parseInt(btn.dataset.projIndex, 10), parseInt(btn.dataset.bulletIndex, 10));
-        buildUI();
-      });
-    });
-
-    // ========== TECHNICAL SKILLS FORM ==========
+    // ========== SKILLS FORM ==========
     container.querySelector('#btn-add-skill-cat')?.addEventListener('click', () => {
-      store.addSkillCategory('', '');
+      store.addSkillCategory('New Category', '');
       buildUI();
+    });
+
+    container.querySelectorAll('.skill-cat-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeSkillCategory(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
     });
 
     container.querySelectorAll('[data-skill-field]').forEach((input) => {
@@ -373,17 +393,17 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.skill-cat-delete').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.removeSkillCategory(parseInt(btn.dataset.index, 10));
-        buildUI();
-      });
-    });
-
-    // ========== AWARDS & ACHIEVEMENTS ==========
+    // ========== AWARDS FORM ==========
     container.querySelector('#btn-add-award')?.addEventListener('click', () => {
       store.addAward('');
       buildUI();
+    });
+
+    container.querySelectorAll('.award-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeAward(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
     });
 
     container.querySelectorAll('.award-input').forEach((input) => {
@@ -394,17 +414,17 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.award-delete').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.removeAward(parseInt(btn.dataset.index, 10));
-        buildUI();
-      });
-    });
-
-    // ========== LEADERSHIP & INITIATIVE ==========
+    // ========== LEADERSHIP FORM ==========
     container.querySelector('#btn-add-leadership')?.addEventListener('click', () => {
       store.addLeadership('', '');
       buildUI();
+    });
+
+    container.querySelectorAll('.lead-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeLeadership(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
     });
 
     container.querySelectorAll('[data-lead-field]').forEach((input) => {
@@ -416,16 +436,9 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.lead-delete').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.removeLeadership(parseInt(btn.dataset.index, 10));
-        buildUI();
-      });
-    });
-
     // ========== LINKS FORM ==========
     container.querySelector('#btn-add-link')?.addEventListener('click', () => {
-      store.addLink('', '');
+      store.addLink('Profile', 'https://');
       buildUI();
     });
 
@@ -454,16 +467,14 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
   function attachInputListener(id, callback) {
     const el = container.querySelector(`#${id}`);
     if (el) {
-      el.addEventListener('input', () => {
-        callback(el.value);
+      el.addEventListener('input', (e) => {
+        callback(e.target.value);
         updatePreviewOnly();
       });
     }
   }
 
-  // Initial render
   buildUI();
-
   return container;
 }
 
@@ -475,8 +486,8 @@ function renderPersonalForm(data, isActive) {
   const p = data.personal || {};
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="personal">
-      <h2 class="form-section-title">👤 Header & Contact Info</h2>
-      <p class="form-section-desc">Universal Amity Header. The official university logo is permanently embedded on top-left.</p>
+      <h2 class="form-section-title">Header & Contact Details</h2>
+      <p class="form-section-desc">Universal Amity Header. Official university shield logo is positioned on the top-left.</p>
 
       <div class="form-group">
         <label class="form-label">Full Name <span class="required">*</span></label>
@@ -501,14 +512,14 @@ function renderPersonalForm(data, isActive) {
 
       <!-- Passport Photo Upload (Limit: 1MB) -->
       <div class="form-group">
-        <label class="form-label">Candidate Passport Photo (Max 1MB) <span class="required">*</span></label>
+        <label class="form-label">Passport Photo (Max 1MB) <span class="required">*</span></label>
         <div class="photo-upload">
           <div class="photo-preview" style="width:80px;height:100px;">
-            ${p.photo ? `<img src="${p.photo}" alt="Passport photo" style="width:100%;height:100%;object-fit:cover;" />` : '<span style="font-size:1.8rem;">📷</span>'}
+            ${p.photo ? `<img src="${p.photo}" alt="Passport photo" style="width:100%;height:100%;object-fit:cover;" />` : '<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">NO PHOTO</span>'}
           </div>
           <div class="flex gap-sm">
             <label class="btn btn--sm btn--blue" style="cursor:pointer;">
-              📁 Upload Photo
+              Upload Photo
               <input type="file" id="input-photo" accept="image/jpeg,image/png" style="display:none;" />
             </label>
             ${p.photo ? '<button class="btn btn--sm btn--red" id="btn-remove-photo">Remove</button>' : ''}
@@ -527,26 +538,25 @@ function renderObjectiveForm(data, isActive) {
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="objective">
       <div class="flex items-center justify-between flex-wrap gap-xs mb-sm">
-        <h2 class="form-section-title mb-0">🎯 Career Objective</h2>
+        <h2 class="form-section-title mb-0">Career Objective</h2>
         <button type="button" class="btn btn--purple btn--sm" id="btn-open-objective-modal" title="Generate tailored career objective from any Job Description">
-          ✨ Generate with JD
+          Generate from JD
         </button>
       </div>
-      <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the PDF.</p>
+      <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the placement PDF.</p>
 
       <div class="objective-banner-card mb-md">
         <div class="flex items-center justify-between flex-wrap gap-xs">
-          <div class="flex items-center gap-xs">
-            <span style="font-size:1.1rem;">🤖</span>
-            <strong style="font-size:0.85rem;">Targeting a specific role or company?</strong>
+          <div>
+            <strong style="font-size:0.85rem;text-transform:uppercase;">Targeting a specific role or company?</strong>
+            <p class="form-hint mt-xs" style="margin-bottom:0;">
+              Paste any Job Description to generate 4 diverse, placement-tailored objectives with unique phrasing.
+            </p>
           </div>
           <button type="button" class="btn btn--yellow btn--sm" id="btn-open-objective-modal-banner">
-            ⚡ Open JD Generator
+            Open JD Generator
           </button>
         </div>
-        <p class="form-hint mt-xs" style="margin-bottom:0;">
-          Paste any Job Description to generate 4 diverse, placement-tailored objectives with unique phrasing every time.
-        </p>
       </div>
 
       <div class="form-group">
@@ -568,14 +578,14 @@ function renderAcademicForm(data, isActive) {
   const academic = data.academic || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="academic">
-      <h2 class="form-section-title">🎓 Academic Details</h2>
+      <h2 class="form-section-title">Academic Details</h2>
       <p class="form-section-desc">Bulleted educational qualifications (BTech CGPA/Minor, 12th CBSE, 10th CBSE).</p>
 
       ${academic.map((item, i) => `
         <div class="flex gap-sm items-center mb-sm">
-          <span style="font-family:var(--font-mono);font-size:1.2rem;">•</span>
+          <span style="font-family:var(--font-mono);font-size:1.2rem;">&bull;</span>
           <input type="text" class="form-input academic-input" data-index="${i}" value="${escapeHtml(item)}" placeholder="e.g. BTech- CGPA 7.79 | Minor in Cyber Security" style="flex:1;" />
-          <button class="btn btn--sm btn--red academic-delete" data-index="${i}" title="Delete bullet">✕</button>
+          <button class="btn btn--sm btn--red academic-delete" data-index="${i}" title="Delete bullet">&times;</button>
         </div>
       `).join('')}
 
@@ -588,14 +598,14 @@ function renderExperienceForm(data, isActive) {
   const experience = data.experience || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="experience">
-      <h2 class="form-section-title">💼 Experience / Internships</h2>
+      <h2 class="form-section-title">Experience & Internships</h2>
       <p class="form-section-desc">Internships, virtual training, or industry experience with bulleted achievements.</p>
 
       ${experience.map((exp, i) => `
         <div class="entry-card mb-md">
           <div class="entry-card-header">
             <span class="entry-card-title">Experience #${i + 1}</span>
-            <button class="delete-btn exp-delete" data-index="${i}" title="Remove entry">✕</button>
+            <button class="delete-btn exp-delete" data-index="${i}" title="Remove entry">&times;</button>
           </div>
 
           <div class="form-group">
@@ -617,9 +627,9 @@ function renderExperienceForm(data, isActive) {
             <label class="form-label">Bullet Points (Justified text)</label>
             ${(exp.bullets || ['']).map((bullet, bi) => `
               <div class="flex gap-sm items-center mb-sm">
-                <span style="font-family:var(--font-mono);color:var(--text-muted);">•</span>
+                <span style="font-family:var(--font-mono);color:var(--text-muted);">&bull;</span>
                 <input type="text" class="form-input" data-exp-bullet data-exp-index="${i}" data-bullet-index="${bi}" value="${escapeHtml(bullet)}" placeholder="Action verb + technical achievement..." style="flex:1;" />
-                ${exp.bullets.length > 1 ? `<button class="btn btn--sm btn--red exp-remove-bullet" data-exp-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">✕</button>` : ''}
+                ${exp.bullets.length > 1 ? `<button class="btn btn--sm btn--red exp-remove-bullet" data-exp-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">&times;</button>` : ''}
               </div>
             `).join('')}
             <button class="add-entry-btn exp-add-bullet" data-exp-index="${i}">+ Add Bullet</button>
@@ -636,14 +646,14 @@ function renderProjectsForm(data, isActive) {
   const projects = data.projects || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="projects">
-      <h2 class="form-section-title">🚀 Projects</h2>
+      <h2 class="form-section-title">Technical Projects</h2>
       <p class="form-section-desc">Technical projects with Project Name, Tech Stack, and justified bullet points.</p>
 
       ${projects.map((proj, i) => `
         <div class="entry-card mb-md">
           <div class="entry-card-header">
             <span class="entry-card-title">Project #${i + 1}</span>
-            <button class="delete-btn proj-delete" data-index="${i}" title="Remove entry">✕</button>
+            <button class="delete-btn proj-delete" data-index="${i}" title="Remove entry">&times;</button>
           </div>
 
           <div class="form-group">
@@ -660,9 +670,9 @@ function renderProjectsForm(data, isActive) {
             <label class="form-label">Bullet Points (Justified text)</label>
             ${(proj.bullets || ['']).map((bullet, bi) => `
               <div class="flex gap-sm items-center mb-sm">
-                <span style="font-family:var(--font-mono);color:var(--text-muted);">•</span>
+                <span style="font-family:var(--font-mono);color:var(--text-muted);">&bull;</span>
                 <input type="text" class="form-input" data-proj-bullet data-proj-index="${i}" data-bullet-index="${bi}" value="${escapeHtml(bullet)}" placeholder="Describe feature, architectural design, outcome..." style="flex:1;" />
-                ${proj.bullets.length > 1 ? `<button class="btn btn--sm btn--red proj-remove-bullet" data-proj-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">✕</button>` : ''}
+                ${proj.bullets.length > 1 ? `<button class="btn btn--sm btn--red proj-remove-bullet" data-proj-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">&times;</button>` : ''}
               </div>
             `).join('')}
             <button class="add-entry-btn proj-add-bullet" data-proj-index="${i}">+ Add Bullet</button>
@@ -679,14 +689,14 @@ function renderSkillsForm(data, isActive) {
   const skills = data.skills || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="skills">
-      <h2 class="form-section-title">⚡ Technical Skills</h2>
-      <p class="form-section-desc">Bullet format with bold category prefix (e.g. Web Development and Backend: React.js, Node.js...).</p>
+      <h2 class="form-section-title">Technical Skills</h2>
+      <p class="form-section-desc">Bullet format with bold category prefix (e.g. Programming & Core Skills: Python, SQL...).</p>
 
       ${skills.map((s, i) => `
         <div class="entry-card mb-sm">
           <div class="flex justify-between items-center mb-xs">
             <span style="font-weight:700;font-size:0.85rem;">Skill Category #${i + 1}</span>
-            <button class="btn btn--sm btn--red skill-cat-delete" data-index="${i}">✕</button>
+            <button class="btn btn--sm btn--red skill-cat-delete" data-index="${i}">&times;</button>
           </div>
           <div class="form-group mb-xs">
             <input type="text" class="form-input" data-skill-field="category" data-skill-index="${i}" value="${escapeHtml(s.category)}" placeholder="Category Name (e.g. Programming & Core Skills)" />
@@ -706,14 +716,14 @@ function renderAwardsForm(data, isActive) {
   const awards = data.awards || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="awards">
-      <h2 class="form-section-title">🏆 Awards and Achievements</h2>
-      <p class="form-section-desc">Certifications, hackathon wins, and professional achievements.</p>
+      <h2 class="form-section-title">Awards & Achievements</h2>
+      <p class="form-section-desc">Certifications, hackathon recognitions, and academic awards.</p>
 
       ${awards.map((item, i) => `
         <div class="flex gap-sm items-center mb-sm">
-          <span style="font-family:var(--font-mono);font-size:1.2rem;">•</span>
+          <span style="font-family:var(--font-mono);font-size:1.2rem;">&bull;</span>
           <input type="text" class="form-input award-input" data-index="${i}" value="${escapeHtml(item)}" placeholder="e.g. Tata Cybersecurity Analyst Certification" style="flex:1;" />
-          <button class="btn btn--sm btn--red award-delete" data-index="${i}">✕</button>
+          <button class="btn btn--sm btn--red award-delete" data-index="${i}">&times;</button>
         </div>
       `).join('')}
 
@@ -726,14 +736,14 @@ function renderLeadershipForm(data, isActive) {
   const leadership = data.leadership || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="leadership">
-      <h2 class="form-section-title">👑 Leadership & Initiative</h2>
-      <p class="form-section-desc">Student initiatives, hackathon leadership, and problem-solving contributions.</p>
+      <h2 class="form-section-title">Leadership & Initiative</h2>
+      <p class="form-section-desc">Student initiatives, hackathon team lead roles, and organizational contributions.</p>
 
       ${leadership.map((item, i) => `
         <div class="entry-card mb-sm">
           <div class="flex justify-between items-center mb-xs">
             <span style="font-weight:700;font-size:0.85rem;">Initiative #${i + 1}</span>
-            <button class="btn btn--sm btn--red lead-delete" data-index="${i}">✕</button>
+            <button class="btn btn--sm btn--red lead-delete" data-index="${i}">&times;</button>
           </div>
           <div class="form-group mb-xs">
             <input type="text" class="form-input" data-lead-field="title" data-lead-index="${i}" value="${escapeHtml(item.title)}" placeholder="Bold Prefix (Optional, e.g. End-to-End Application Delivery)" />
@@ -753,14 +763,14 @@ function renderLinksForm(data, isActive) {
   const links = data.links || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="links">
-      <h2 class="form-section-title">🔗 Links</h2>
+      <h2 class="form-section-title">Professional Links</h2>
       <p class="form-section-desc">Professional profiles rendered as clean, clickable blue links in the PDF.</p>
 
       ${links.map((item, i) => `
         <div class="entry-card mb-sm">
           <div class="flex justify-between items-center mb-xs">
             <span style="font-weight:700;font-size:0.85rem;">Link #${i + 1}</span>
-            <button class="btn btn--sm btn--red link-delete" data-index="${i}">✕</button>
+            <button class="btn btn--sm btn--red link-delete" data-index="${i}">&times;</button>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -784,7 +794,7 @@ function renderDeclarationForm(data, isActive) {
   const d = data.declaration || {};
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="declaration">
-      <h2 class="form-section-title">📝 Self Declaration</h2>
+      <h2 class="form-section-title">Self Declaration</h2>
       <p class="form-section-desc">Standard placement cell declaration with Date, Place, divider, and Candidate Name.</p>
 
       <div class="form-group">
@@ -798,7 +808,7 @@ function renderDeclarationForm(data, isActive) {
           <input type="text" class="form-input" id="input-decl-date" value="${escapeHtml(d.date)}" placeholder="23rd July 2026" />
         </div>
         <div class="form-group">
-          <label class="form-label">Place (e.g. Gwalior / Noida)</label>
+          <label class="form-label">Place (e.g. Gwalior)</label>
           <input type="text" class="form-input" id="input-decl-place" value="${escapeHtml(d.place)}" placeholder="Gwalior" />
         </div>
       </div>
@@ -806,21 +816,12 @@ function renderDeclarationForm(data, isActive) {
   `;
 }
 
-// ============================================================
-// PDF EXPORT
-// ============================================================
-
-async function exportPDF(store, toast) {
-  const data = store.getData();
-  const rawName = (data.personal?.fullName || 'Student').trim().replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_');
-  const fileName = `${rawName || 'Student'}_Amity_Resume.pdf`;
-
-  await downloadVectorPDF(data, fileName, toast);
-}
-
 function escapeHtml(str) {
   if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

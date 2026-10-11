@@ -1,14 +1,12 @@
 /**
- * ur-CV — Amity Resume Builder
- * Main Application Entry Point
- *
- * Neo Brutalism design, mobile-first resume builder
- * with Manual Mode and JD Assist Mode.
+ * ur-CV — Amity Placement Resume Builder
+ * Main Application Entry Point with History API Routing & Back-Button Support
  */
 
 import { ResumeStore } from './store.js';
 import { renderLanding } from './views/landing.js';
 import { renderBuilder } from './views/builder.js';
+import { renderNotFound } from './views/not-found.js';
 import { renderHeader } from './components/header.js';
 import { renderFooter } from './components/footer.js';
 import { ToastManager } from './components/toast.js';
@@ -17,14 +15,39 @@ class App {
   constructor() {
     this.store = new ResumeStore();
     this.toast = new ToastManager();
-    this.currentView = 'landing'; // 'landing' | 'builder'
-    this.mode = null; // 'manual' | 'jd-assist'
+    this.currentView = this.resolveRoute();
     this.root = document.getElementById('app');
 
     this.init();
   }
 
+  resolveRoute() {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const hash = window.location.hash.replace(/^#\/?/, '');
+
+    if (hash === 'builder' || path === '/builder' || path === '/editor') {
+      return 'builder';
+    }
+    if ((path === '/' || path === '/index.html' || path === '/home') && (hash === '' || hash === 'landing')) {
+      return 'landing';
+    }
+    return '404';
+  }
+
   init() {
+    // Listen to browser Back/Forward navigation
+    window.addEventListener('popstate', (e) => {
+      const targetView = (e.state && e.state.view) || this.resolveRoute();
+      this.currentView = targetView;
+      this.render();
+      window.scrollTo(0, 0);
+    });
+
+    // Ensure initial state has history record
+    const initialView = this.resolveRoute();
+    const initialPath = initialView === 'builder' ? '/builder' : initialView === 'landing' ? '/' : window.location.pathname;
+    window.history.replaceState({ view: initialView }, '', initialPath);
+
     this.render();
     this.loadDraft();
   }
@@ -44,23 +67,32 @@ class App {
   saveDraft() {
     try {
       localStorage.setItem('ur-cv-draft', JSON.stringify(this.store.getData()));
-      this.toast.show('Draft saved!', 'success');
+      this.toast.show('Draft saved to local storage.', 'success');
     } catch (e) {
-      this.toast.show('Failed to save draft', 'error');
+      this.toast.show('Failed to save draft.', 'error');
     }
   }
 
   deleteDraft() {
     localStorage.removeItem('ur-cv-draft');
     this.store.reset();
-    this.toast.show('Draft deleted!', 'info');
+    this.toast.show('Draft reset to default Amity format.', 'info');
     this.navigateTo('landing');
   }
 
-  navigateTo(view, mode = null) {
+  navigateTo(view, push = true) {
+    if (this.currentView === view && !push) return;
     this.currentView = view;
-    if (mode) this.mode = mode;
+
+    if (push) {
+      const targetPath = view === 'builder' ? '/builder' : view === 'landing' ? '/' : '/404';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({ view }, '', targetPath);
+      }
+    }
+
     this.render();
+    window.scrollTo(0, 0);
   }
 
   render() {
@@ -69,24 +101,32 @@ class App {
     // Header
     const header = renderHeader({
       currentView: this.currentView,
-      onBack: () => this.navigateTo('landing'),
+      onHome: () => this.navigateTo('landing'),
+      onBack: () => {
+        // If there is history, navigate back; otherwise go to landing
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          this.navigateTo('landing');
+        }
+      },
       onSave: () => this.saveDraft(),
       onDelete: () => {
-        if (confirm('Are you sure you want to delete your draft? This cannot be undone.')) {
+        if (confirm('Reset draft to original Amity template? This will replace your local edits.')) {
           this.deleteDraft();
         }
       },
     });
     this.root.appendChild(header);
 
-    // Ticker (neo-brutalist decorative element)
+    // Clean Neo-Brutalist Ticker (no emojis or AI gimmicks)
     if (this.currentView === 'landing') {
       const ticker = document.createElement('div');
       ticker.className = 'ticker';
       ticker.innerHTML = `
         <div class="ticker-inner">
-          ★ FREE RESUME BUILDER ★ MOBILE FIRST ★ AMITY UNIVERSITY APPROVED TEMPLATE ★ AI POWERED JD ASSIST ★ PDF EXPORT ★ PRIVACY FIRST ★ NO ACCOUNT NEEDED ★
-          ★ FREE RESUME BUILDER ★ MOBILE FIRST ★ AMITY UNIVERSITY APPROVED TEMPLATE ★ AI POWERED JD ASSIST ★ PDF EXPORT ★ PRIVACY FIRST ★ NO ACCOUNT NEEDED ★
+          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; ATS COMPLIANT STRUCTURE &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
+          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; ATS COMPLIANT STRUCTURE &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
         </div>
       `;
       this.root.appendChild(ticker);
@@ -95,22 +135,35 @@ class App {
     // Main Content
     if (this.currentView === 'landing') {
       const landing = renderLanding({
-        onSelectMode: (mode) => this.navigateTo('builder', mode),
+        onSelectMode: () => this.navigateTo('builder'),
       });
       this.root.appendChild(landing);
     } else if (this.currentView === 'builder') {
       const builder = renderBuilder({
         store: this.store,
-        mode: this.mode,
         toast: this.toast,
         onSave: () => this.saveDraft(),
-        onBack: () => this.navigateTo('landing'),
+        onBack: () => {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            this.navigateTo('landing');
+          }
+        },
       });
       this.root.appendChild(builder);
+    } else {
+      // 404 View
+      const notFound = renderNotFound({
+        onNavigateHome: (dest) => this.navigateTo(dest || 'landing'),
+      });
+      this.root.appendChild(notFound);
     }
 
-    // Footer
-    const footer = renderFooter();
+    // Structured Footer
+    const footer = renderFooter({
+      onNavigate: (view) => this.navigateTo(view),
+    });
     this.root.appendChild(footer);
 
     // Toast container
@@ -125,4 +178,4 @@ class App {
 
 // Boot the app
 const app = new App();
-window.app = app; // For debugging
+window.app = app;
