@@ -665,6 +665,11 @@ body {
   margin: 0 auto var(--space-2xl);
 }
 
+.landing-modes--single {
+  grid-template-columns: 1fr;
+  max-width: 520px;
+}
+
 .mode-card {
   cursor: pointer;
   padding: var(--space-xl);
@@ -672,9 +677,20 @@ body {
   transition: all var(--transition-fast);
 }
 
+.mode-card--single {
+  padding: var(--space-2xl) var(--space-xl);
+  border: var(--border-heavy) solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+
 .mode-card:hover {
   transform: translate(-4px, -4px) rotate(-1deg);
   box-shadow: var(--shadow-lg);
+}
+
+.mode-card--single:hover {
+  transform: translate(-3px, -3px) rotate(0deg);
+  box-shadow: var(--shadow-xl);
 }
 
 .mode-card .mode-icon {
@@ -686,14 +702,23 @@ body {
 .mode-card .mode-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.1rem;
   text-transform: uppercase;
   margin-bottom: var(--space-sm);
+}
+
+.mode-card--single .mode-title {
+  font-size: 1.4rem;
 }
 
 .mode-card .mode-desc {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.mode-card--single .mode-desc {
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .landing-features {

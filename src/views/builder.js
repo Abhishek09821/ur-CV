@@ -30,9 +30,8 @@ const SECTIONS = [
 export function renderBuilder({ store, mode, toast, onSave, onBack }) {
   const container = document.createElement('div');
   container.className = 'builder-wrapper';
-  let activeSection = mode === 'jd-assist' ? 'objective' : 'personal';
+  let activeSection = 'personal';
   let mobileView = 'form'; // 'form' | 'preview'
-  let hasAutoOpenedJDModal = false;
 
   function buildUI() {
     const data = store.getData();
@@ -450,14 +449,6 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
     attachInputListener('input-decl-text', (v) => store.updateDeclaration('text', v));
     attachInputListener('input-decl-date', (v) => store.updateDeclaration('date', v));
     attachInputListener('input-decl-place', (v) => store.updateDeclaration('place', v));
-
-    // Auto-open objective modal if user selected JD Assist mode
-    if (mode === 'jd-assist' && !hasAutoOpenedJDModal) {
-      hasAutoOpenedJDModal = true;
-      setTimeout(() => {
-        triggerObjectiveModal();
-      }, 150);
-    }
   }
 
   function attachInputListener(id, callback) {
