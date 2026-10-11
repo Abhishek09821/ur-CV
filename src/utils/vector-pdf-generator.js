@@ -12,6 +12,7 @@
 
 import { jsPDF } from 'jspdf';
 import { AMITY_OFFICIAL_LOGO_DATA_URL } from '../assets/amity-assets.js';
+import { parseEducationItem } from '../views/jakes-preview.js';
 
 export function generateVectorPDF(data) {
   if (data && data.template === 'jakes') {
@@ -693,15 +694,15 @@ function generateJakesVectorPDF(data) {
   const academic = data.academic || [];
   if (academic.length > 0) {
     renderJakesSectionHeader('EDUCATION');
-    academic.forEach((item) => {
-      const cleanText = String(item).replace(/^[•\-\*]\s*/, '');
-      renderParagraph(
-        [{ text: cleanText, fontSize: 9.5 }],
-        X_LEFT,
-        CONTENT_WIDTH,
-        11.5,
-        { justify: true }
-      );
+    academic.forEach((raw) => {
+      const item = parseEducationItem(raw);
+      const tokens = [
+        { text: item.institution + (item.details ? ' ' : ''), bold: true, fontSize: 9.5 },
+      ];
+      if (item.details) {
+        tokens.push({ text: item.details, fontSize: 9.5 });
+      }
+      renderParagraph(tokens, X_LEFT, CONTENT_WIDTH, 11.5, { justify: true });
       curY -= 1;
     });
   }
@@ -721,7 +722,7 @@ function generateJakesVectorPDF(data) {
 
       if (exp.company) {
         doc.setFont('times', 'normal');
-        const compStr = ' | ' + exp.company;
+        const compStr = ' ' + exp.company;
         doc.text(compStr, X_LEFT + leftOffset, curY);
       }
 
@@ -789,8 +790,9 @@ function generateJakesVectorPDF(data) {
 
   // ================= 7. CERTIFICATIONS & ACHIEVEMENTS =================
   const awards = data.awards || [];
+  const achievements = data.achievements || [];
   const leadership = data.leadership || [];
-  if (awards.length > 0 || leadership.length > 0) {
+  if (awards.length > 0 || achievements.length > 0 || leadership.length > 0) {
     renderJakesSectionHeader('CERTIFICATIONS & ACHIEVEMENTS');
     if (awards.length > 0) {
       const certText = awards.map((a) => String(a).replace(/^[•\-\*]\s*/, '')).join('; ') + '.';
@@ -806,7 +808,19 @@ function generateJakesVectorPDF(data) {
       );
       curY -= 1;
     }
-    if (leadership.length > 0) {
+    if (achievements.length > 0) {
+      const achText = achievements.map((a) => String(a).replace(/^[•\-\*]\s*/, '')).join('; ') + '.';
+      renderParagraph(
+        [
+          { text: 'Achievements: ', bold: true, fontSize: 9.5 },
+          { text: achText, fontSize: 9.5 },
+        ],
+        X_LEFT,
+        CONTENT_WIDTH,
+        11.5,
+        { justify: true }
+      );
+    } else if (leadership.length > 0) {
       const leadTokens = [{ text: 'Achievements: ', bold: true, fontSize: 9.5 }];
       leadership.forEach((lead, idx) => {
         if (lead.title) {

@@ -8,6 +8,7 @@
 
 import { buildAmityResumeHTML } from '../views/preview.js';
 import { buildJakesResumeHTML } from '../views/jakes-preview.js';
+import { JAKES_DEFAULT_RESUME, UNIVERSAL_DEFAULT_RESUME } from '../store.js';
 
 export function openPreviewModal({ store, toast, onSelect }) {
   const existing = document.getElementById('formats-preview-modal-overlay');
@@ -73,16 +74,26 @@ export function openPreviewModal({ store, toast, onSelect }) {
     });
 
     if (tpl === 'jakes') {
+      const isAmityDefault = 
+        data.personal?.address?.includes('Gayatri Vihar') || 
+        data.projects?.some((p) => p.name === 'CANARY-WORKSPACE AI FILE');
+      const jakesPreviewData = isAmityDefault ? JAKES_DEFAULT_RESUME : { ...JAKES_DEFAULT_RESUME, ...data, template: 'jakes' };
+
       sheetWrap.innerHTML = `
         <div class="jakes-resume-sheet formats-modal-sheet">
-          ${buildJakesResumeHTML({ ...data, template: 'jakes' })}
+          ${buildJakesResumeHTML(jakesPreviewData)}
         </div>
       `;
       btnUse.textContent = "Use Jake's Resume & Open Editor \u2192";
     } else {
+      const isJakesDefault = 
+        data.projects?.some((p) => p.name === 'Movie Ticket Management System') ||
+        data.experience?.some((e) => e.company === 'Pega Platform');
+      const amityPreviewData = isJakesDefault ? UNIVERSAL_DEFAULT_RESUME : { ...UNIVERSAL_DEFAULT_RESUME, ...data, template: 'amity' };
+
       sheetWrap.innerHTML = `
         <div class="amity-resume-sheet formats-modal-sheet">
-          ${buildAmityResumeHTML({ ...data, template: 'amity' })}
+          ${buildAmityResumeHTML(amityPreviewData)}
         </div>
       `;
       btnUse.textContent = "Use Amity Format & Open Editor \u2192";

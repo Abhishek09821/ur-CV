@@ -1,14 +1,15 @@
 /**
- * Builder View — The interactive editor for the Amity Placement Resume
+ * Builder View — The interactive editor for both Amity & Jake's Resume Standards
  * Split layout: Left Editor Sidebar + Right Live A4 Preview
  */
 
-import { renderPreview, buildAmityResumeHTML } from './preview.js';
+import { renderPreview } from './preview.js';
+import { parseEducationItem } from './jakes-preview.js';
 import { openObjectiveModal } from '../components/objective-modal.js';
 import { openPhotoCompressorModal } from '../components/photo-compressor-modal.js';
 import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
-const SECTIONS = [
+const AMITY_SECTIONS = [
   { id: 'personal', label: 'Header & Contact', step: '01', required: true },
   { id: 'objective', label: 'Career Objective', step: '02', required: true },
   { id: 'academic', label: 'Academic Details', step: '03', required: true },
@@ -21,14 +22,37 @@ const SECTIONS = [
   { id: 'declaration', label: 'Declaration', step: '10', required: true },
 ];
 
+const JAKES_SECTIONS = [
+  { id: 'personal', label: 'Header & Links', step: '01', required: true },
+  { id: 'objective', label: 'Summary', step: '02', required: true },
+  { id: 'academic', label: 'Education', step: '03', required: true },
+  { id: 'experience', label: 'Experience', step: '04', required: false },
+  { id: 'projects', label: 'Projects', step: '05', required: false },
+  { id: 'skills', label: 'Technical Skills', step: '06', required: true },
+  { id: 'awards', label: 'Certifications & Achievements', step: '07', required: false },
+];
+
 export function renderBuilder({ store, toast, onSave, onBack }) {
   const container = document.createElement('div');
   container.className = 'builder-wrapper';
   let activeSection = 'personal';
   let mobileView = 'form'; // 'form' | 'preview'
 
+  function getActiveSections() {
+    const isJakes = (store.getTemplate ? store.getTemplate() : 'amity') === 'jakes';
+    return isJakes ? JAKES_SECTIONS : AMITY_SECTIONS;
+  }
+
   function buildUI() {
     const data = store.getData();
+    const isJakes = (store.getTemplate ? store.getTemplate() : 'amity') === 'jakes';
+    const SECTIONS = isJakes ? JAKES_SECTIONS : AMITY_SECTIONS;
+
+    // Validate that current activeSection exists in active format
+    if (!SECTIONS.some((s) => s.id === activeSection)) {
+      activeSection = 'personal';
+    }
+
     const completion = store.getCompletionStatus();
 
     container.innerHTML = `
@@ -49,26 +73,26 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       </div>
 
       <div class="builder active">
-        <!-- Sidebar Form Panels (Starts directly at top for quick editing) -->
+        <!-- Sidebar Form Panels -->
         <div class="builder-sidebar ${mobileView === 'preview' ? 'mobile-hidden' : ''}">
           <!-- Form Panels -->
           <div class="form-container">
-            ${renderPersonalForm(data, activeSection === 'personal')}
-            ${renderObjectiveForm(data, activeSection === 'objective')}
-            ${renderAcademicForm(data, activeSection === 'academic')}
-            ${renderExperienceForm(data, activeSection === 'experience')}
-            ${renderProjectsForm(data, activeSection === 'projects')}
-            ${renderSkillsForm(data, activeSection === 'skills')}
-            ${renderAwardsForm(data, activeSection === 'awards')}
-            ${renderLeadershipForm(data, activeSection === 'leadership')}
-            ${renderLinksForm(data, activeSection === 'links')}
-            ${renderDeclarationForm(data, activeSection === 'declaration')}
+            ${renderPersonalForm(data, activeSection === 'personal', isJakes)}
+            ${renderObjectiveForm(data, activeSection === 'objective', isJakes)}
+            ${renderAcademicForm(data, activeSection === 'academic', isJakes)}
+            ${renderExperienceForm(data, activeSection === 'experience', isJakes)}
+            ${renderProjectsForm(data, activeSection === 'projects', isJakes)}
+            ${renderSkillsForm(data, activeSection === 'skills', isJakes)}
+            ${renderAwardsForm(data, activeSection === 'awards', isJakes)}
+            ${!isJakes ? renderLeadershipForm(data, activeSection === 'leadership') : ''}
+            ${!isJakes ? renderLinksForm(data, activeSection === 'links') : ''}
+            ${!isJakes ? renderDeclarationForm(data, activeSection === 'declaration') : ''}
           </div>
 
           <!-- Bottom Action Toolbar -->
           <div class="builder-actions-toolbar">
-            ${activeSection !== 'personal' ? '<button class="btn btn--white btn--sm" id="btn-prev-section">&larr; Prev</button>' : ''}
-            ${activeSection !== 'declaration' ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next &rarr;</button>' : ''}
+            ${activeSection !== SECTIONS[0].id ? '<button class="btn btn--white btn--sm" id="btn-prev-section">&larr; Prev</button>' : ''}
+            ${activeSection !== SECTIONS[SECTIONS.length - 1].id ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next &rarr;</button>' : ''}
             
             <div class="export-btn-group">
               <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download 100% Searchable Vector PDF (Clean Vector Quality)">
@@ -119,6 +143,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       previewPanel.innerHTML = renderPreview(store.getData());
     }
     const completion = store.getCompletionStatus();
+    const SECTIONS = getActiveSections();
     SECTIONS.forEach((s) => {
       const isDone = completion[s.id];
       const stepItem = container.querySelector(`.progress-step[data-section="${s.id}"]`);
@@ -129,6 +154,8 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
   }
 
   function attachEvents() {
+    const SECTIONS = getActiveSections();
+
     // Navigation items
     container.querySelectorAll('[data-section]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -189,13 +216,24 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       }
     });
 
+    // Helper to attach input listener
+    const attachInputListener = (id, callback) => {
+      const el = container.querySelector('#' + id);
+      if (el) {
+        el.addEventListener('input', () => {
+          callback(el.value);
+          updatePreviewOnly();
+        });
+      }
+    };
+
     // ========== PERSONAL FORM ==========
     attachInputListener('input-fullname', (v) => store.updatePersonal('fullName', v));
     attachInputListener('input-address', (v) => store.updatePersonal('address', v));
     attachInputListener('input-phone', (v) => store.updatePersonal('phone', v));
     attachInputListener('input-email', (v) => store.updatePersonal('email', v));
 
-    // Passport photo upload with 1MB limit check + automatic compressor fallback
+    // Passport photo upload with 1MB limit check + automatic compressor fallback (Amity)
     const photoInput = container.querySelector('#input-photo');
     if (photoInput) {
       photoInput.addEventListener('change', (e) => {
@@ -231,7 +269,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     }
 
-    // Direct Photo Compressor trigger button
+    // Direct Photo Compressor trigger button (Amity)
     container.querySelector('#btn-open-compressor')?.addEventListener('click', () => {
       openPhotoCompressorModal({
         toast,
@@ -249,7 +287,29 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       toast.show('Photo removed.', 'info');
     });
 
-    // ========== CAREER OBJECTIVE ==========
+    // Integrated Links handlers for Jake's Format (in Step 01)
+    container.querySelectorAll('[data-jakes-link-field]').forEach((input) => {
+      const idx = parseInt(input.dataset.linkIndex, 10);
+      const field = input.dataset.jakesLinkField;
+      input.addEventListener('input', () => {
+        store.updateLink(idx, field, input.value);
+        updatePreviewOnly();
+      });
+    });
+
+    container.querySelectorAll('.jakes-link-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeLink(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
+    });
+
+    container.querySelector('#btn-jakes-add-link')?.addEventListener('click', () => {
+      store.addLink('Link', 'https://');
+      buildUI();
+    });
+
+    // ========== CAREER OBJECTIVE / SUMMARY ==========
     attachInputListener('input-objective', (v) => {
       store.updateObjective(v);
       const counter = container.querySelector('#objective-char-counter');
@@ -268,14 +328,14 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
           const textarea = container.querySelector('#input-objective');
           if (textarea) {
             textarea.value = generatedText;
-          }
-          const counter = container.querySelector('#objective-char-counter');
-          if (counter) {
-            const words = generatedText.trim().split(/\s+/).filter(Boolean).length;
-            counter.textContent = `${generatedText.length} chars (${words} words)`;
+            const counter = container.querySelector('#objective-char-counter');
+            if (counter) {
+              const words = generatedText.trim().split(/\s+/).filter(Boolean).length;
+              counter.textContent = `${generatedText.length} chars (${words} words)`;
+            }
           }
           updatePreviewOnly();
-          toast.show('Career Objective applied to your resume.', 'success');
+          toast.show('Objective updated from JD!', 'success');
         },
       });
     };
@@ -283,16 +343,38 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
     container.querySelector('#btn-open-objective-modal')?.addEventListener('click', triggerObjectiveModal);
     container.querySelector('#btn-open-objective-modal-banner')?.addEventListener('click', triggerObjectiveModal);
 
-    // ========== ACADEMIC DETAILS ==========
+    // ========== ACADEMIC / EDUCATION FORM ==========
+    // Jake's structured Education
+    container.querySelectorAll('[data-jakes-academic-field]').forEach((input) => {
+      const idx = parseInt(input.dataset.academicIndex, 10);
+      const field = input.dataset.jakesAcademicField;
+      input.addEventListener('input', () => {
+        store.updateAcademicEntry(idx, field, input.value);
+        updatePreviewOnly();
+      });
+    });
+
+    container.querySelectorAll('.jakes-academic-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeAcademicBullet(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
+    });
+
+    container.querySelector('#btn-jakes-add-academic')?.addEventListener('click', () => {
+      store.addAcademicEntry('', '');
+      buildUI();
+    });
+
+    // Amity bullet list Education
     container.querySelector('#btn-add-academic')?.addEventListener('click', () => {
       store.addAcademicBullet('');
       buildUI();
     });
 
     container.querySelectorAll('.academic-input').forEach((input) => {
-      const idx = parseInt(input.dataset.index, 10);
       input.addEventListener('input', () => {
-        store.updateAcademicBullet(idx, input.value);
+        store.updateAcademicBullet(parseInt(input.dataset.index, 10), input.value);
         updatePreviewOnly();
       });
     });
@@ -402,7 +484,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
 
     // ========== SKILLS FORM ==========
     container.querySelector('#btn-add-skill-cat')?.addEventListener('click', () => {
-      store.addSkillCategory('New Category', '');
+      store.addSkillCategory('', '');
       buildUI();
     });
 
@@ -422,10 +504,17 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     });
 
-    // ========== AWARDS FORM ==========
+    // ========== AWARDS & CERTIFICATIONS FORM ==========
     container.querySelector('#btn-add-award')?.addEventListener('click', () => {
       store.addAward('');
       buildUI();
+    });
+
+    container.querySelectorAll('.award-input').forEach((input) => {
+      input.addEventListener('input', () => {
+        store.updateAward(parseInt(input.dataset.index, 10), input.value);
+        updatePreviewOnly();
+      });
     });
 
     container.querySelectorAll('.award-delete').forEach((btn) => {
@@ -435,15 +524,27 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.award-input').forEach((input) => {
-      const idx = parseInt(input.dataset.index, 10);
+    // ========== ACHIEVEMENTS FORM (Jake's Format) ==========
+    container.querySelector('#btn-add-achievement')?.addEventListener('click', () => {
+      store.addAchievement('');
+      buildUI();
+    });
+
+    container.querySelectorAll('.achievement-input').forEach((input) => {
       input.addEventListener('input', () => {
-        store.updateAward(idx, input.value);
+        store.updateAchievement(parseInt(input.dataset.index, 10), input.value);
         updatePreviewOnly();
       });
     });
 
-    // ========== LEADERSHIP FORM ==========
+    container.querySelectorAll('.achievement-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeAchievement(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
+    });
+
+    // ========== LEADERSHIP FORM (Amity Format) ==========
     container.querySelector('#btn-add-leadership')?.addEventListener('click', () => {
       store.addLeadership('', '');
       buildUI();
@@ -465,10 +566,17 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     });
 
-    // ========== LINKS FORM ==========
+    // ========== LINKS FORM (Amity Format) ==========
     container.querySelector('#btn-add-link')?.addEventListener('click', () => {
-      store.addLink('Profile', 'https://');
+      store.addLink('', '');
       buildUI();
+    });
+
+    container.querySelectorAll('.link-delete').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        store.removeLink(parseInt(btn.dataset.index, 10));
+        buildUI();
+      });
     });
 
     container.querySelectorAll('[data-link-field]').forEach((input) => {
@@ -480,29 +588,13 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     });
 
-    container.querySelectorAll('.link-delete').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        store.removeLink(parseInt(btn.dataset.index, 10));
-        buildUI();
-      });
-    });
-
-    // ========== DECLARATION FORM ==========
+    // ========== DECLARATION FORM (Amity Format) ==========
     attachInputListener('input-decl-text', (v) => store.updateDeclaration('text', v));
     attachInputListener('input-decl-date', (v) => store.updateDeclaration('date', v));
     attachInputListener('input-decl-place', (v) => store.updateDeclaration('place', v));
   }
 
-  function attachInputListener(id, callback) {
-    const el = container.querySelector(`#${id}`);
-    if (el) {
-      el.addEventListener('input', (e) => {
-        callback(e.target.value);
-        updatePreviewOnly();
-      });
-    }
-  }
-
+  // Initial draw
   buildUI();
   return container;
 }
@@ -511,11 +603,63 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
 // FORM SECTION RENDERERS
 // ============================================================
 
-function renderPersonalForm(data, isActive) {
+function renderPersonalForm(data, isActive, isJakes) {
   const p = data.personal || {};
+  const links = data.links || [];
+
+  if (isJakes) {
+    return `
+      <div class="form-section ${isActive ? 'active' : ''}" data-form="personal">
+        <div class="badge badge--yellow mb-xs" style="font-size:0.72rem;">JAKE'S FORMAT — ATS STANDARD</div>
+        <h2 class="form-section-title">Header, Contact &amp; Links</h2>
+        <p class="form-section-desc">Centered header. Professional links sit directly below contact details. No photo required.</p>
+
+        <div class="form-group">
+          <label class="form-label">Full Name <span class="required">*</span></label>
+          <input type="text" class="form-input" id="input-fullname" value="${escapeHtml(p.fullName)}" placeholder="e.g. Abhishek Tiwari" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location (City, State) <span class="required">*</span></label>
+          <input type="text" class="form-input" id="input-address" value="${escapeHtml(p.address)}" placeholder="e.g. Gwalior, Madhya Pradesh" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" class="form-input" id="input-phone" value="${escapeHtml(p.phone)}" placeholder="e.g. +91 96919 66023" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address <span class="required">*</span></label>
+            <input type="email" class="form-input" id="input-email" value="${escapeHtml(p.email)}" placeholder="e.g. abhishek.tiwarii9821@gmail.com" />
+          </div>
+        </div>
+
+        <!-- Integrated Links Section for Jake's Resume -->
+        <div class="mt-md pt-sm" style="border-top:1px dashed var(--border-color);">
+          <div class="flex justify-between items-center mb-xs">
+            <label class="form-label mb-0" style="font-weight:800;">Professional Profiles &amp; Links</label>
+            <button type="button" class="btn btn--sm btn--blue" id="btn-jakes-add-link">+ Add Link</button>
+          </div>
+          <p class="form-hint mb-sm">Rendered as clean links (e.g. GitHub | LinkedIn | LeetCode) under contact information.</p>
+
+          ${links.map((link, i) => `
+            <div class="entry-card mb-xs" style="padding:8px 10px;">
+              <div class="flex gap-sm items-center">
+                <input type="text" class="form-input" data-jakes-link-field="label" data-link-index="${i}" value="${escapeHtml(link.label)}" placeholder="Label (e.g. GitHub)" style="width:110px;" />
+                <input type="url" class="form-input" data-jakes-link-field="url" data-link-index="${i}" value="${escapeHtml(link.url)}" placeholder="https://..." style="flex:1;" />
+                <button type="button" class="btn btn--sm btn--red jakes-link-delete" data-index="${i}" title="Delete link">&times;</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="personal">
-      <h2 class="form-section-title">Header & Contact Details</h2>
+      <h2 class="form-section-title">Header &amp; Contact Details</h2>
       <p class="form-section-desc">Universal Amity Header. Official university shield logo is positioned on the top-left.</p>
 
       <div class="form-group">
@@ -565,26 +709,30 @@ function renderPersonalForm(data, isActive) {
   `;
 }
 
-function renderObjectiveForm(data, isActive) {
+function renderObjectiveForm(data, isActive, isJakes) {
   const objectiveText = data.objective || '';
   const wordCount = objectiveText.trim().split(/\s+/).filter(Boolean).length;
+  const sectionTitle = isJakes ? 'Professional Summary' : 'Career Objective';
+  const sectionDesc = isJakes
+    ? 'Single paragraph software engineering summary. Formatted with justified text alignment in LaTeX standard.'
+    : 'Full paragraph summary. Formatted with justified text alignment in the official PDF.';
 
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="objective">
       <div class="flex items-center justify-between flex-wrap gap-xs mb-sm">
-        <h2 class="form-section-title mb-0">Career Objective</h2>
+        <h2 class="form-section-title mb-0">${sectionTitle}</h2>
         <button type="button" class="btn btn--purple btn--sm" id="btn-open-objective-modal" title="Generate tailored career objective from any Job Description">
           Generate from JD
         </button>
       </div>
-      <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the official PDF.</p>
+      <p class="form-section-desc">${sectionDesc}</p>
 
       <div class="objective-banner-card mb-md">
         <div class="flex items-center justify-between flex-wrap gap-xs">
           <div>
             <strong style="font-size:0.85rem;text-transform:uppercase;">Targeting a specific role or company?</strong>
             <p class="form-hint mt-xs" style="margin-bottom:0;">
-              Paste any Job Description to generate 4 diverse, role-tailored objectives with unique phrasing.
+              Paste any Job Description to generate 4 diverse, role-tailored summaries with unique phrasing.
             </p>
           </div>
           <button type="button" class="btn btn--yellow btn--sm" id="btn-open-objective-modal-banner">
@@ -595,12 +743,12 @@ function renderObjectiveForm(data, isActive) {
 
       <div class="form-group">
         <div class="flex items-center justify-between">
-          <label class="form-label mb-0" for="input-objective">Career Objective Text</label>
+          <label class="form-label mb-0" for="input-objective">${sectionTitle} Text</label>
           <span class="form-hint" id="objective-char-counter">${objectiveText.length} chars (${wordCount} words)</span>
         </div>
-        <textarea class="form-textarea mt-xs" id="input-objective" rows="6" placeholder="Motivated final-year B.Tech Computer Science student...">${escapeHtml(objectiveText)}</textarea>
+        <textarea class="form-textarea mt-xs" id="input-objective" rows="6" placeholder="${isJakes ? 'B.Tech Computer Science student focused on Software Development...' : 'Motivated final-year B.Tech Computer Science student...'}">${escapeHtml(objectiveText)}</textarea>
         <div class="flex items-center justify-between mt-xs flex-wrap gap-xs">
-          <p class="form-hint mb-0">All text is automatically justified per official Amity format.</p>
+          <p class="form-hint mb-0">All text is automatically justified per standard specifications.</p>
           <span class="badge badge--green" style="font-size:0.7rem;">Editable anytime</span>
         </div>
       </div>
@@ -608,8 +756,59 @@ function renderObjectiveForm(data, isActive) {
   `;
 }
 
-function renderAcademicForm(data, isActive) {
+function renderAcademicForm(data, isActive, isJakes) {
   const academic = data.academic || [];
+
+  if (isJakes) {
+    return `
+      <div class="form-section ${isActive ? 'active' : ''}" data-form="academic">
+        <div class="badge badge--yellow mb-xs" style="font-size:0.72rem;">EXACT BOLD REPLICA FORMAT</div>
+        <h2 class="form-section-title">Education</h2>
+        <p class="form-section-desc">
+          Institution / Board is rendered in <strong>BOLD</strong>, followed by Degree, Minor, CGPA, or Percentage in normal weight.
+        </p>
+
+        ${academic.map((raw, i) => {
+          const parsed = parseEducationItem(raw);
+          return `
+            <div class="entry-card mb-md">
+              <div class="entry-card-header">
+                <span class="entry-card-title">Education #${i + 1}</span>
+                <button type="button" class="delete-btn jakes-academic-delete" data-index="${i}" title="Remove entry">&times;</button>
+              </div>
+
+              <div class="form-group mb-sm">
+                <label class="form-label">Institution / Board / Examination (Rendered in <strong>BOLD</strong>)</label>
+                <input 
+                  type="text" 
+                  class="form-input" 
+                  data-jakes-academic-field="institution" 
+                  data-academic-index="${i}" 
+                  value="${escapeHtml(parsed.institution)}" 
+                  placeholder="e.g. Amity University Madhya Pradesh or Senior Secondary (12th), CBSE" 
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Degree, Minor, CGPA or Score (Rendered in Regular text)</label>
+                <input 
+                  type="text" 
+                  class="form-input" 
+                  data-jakes-academic-field="details" 
+                  data-academic-index="${i}" 
+                  value="${escapeHtml(parsed.details)}" 
+                  placeholder="e.g. B.Tech in Computer Science Engineering | Minor in Cyber Security | CGPA: 7.79 | Final Year or 69.8%" 
+                />
+              </div>
+            </div>
+          `;
+        }).join('')}
+
+        <button type="button" class="add-entry-btn mt-sm" id="btn-jakes-add-academic">+ Add Education Entry</button>
+      </div>
+    `;
+  }
+
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="academic">
       <h2 class="form-section-title">Academic Details</h2>
@@ -618,7 +817,7 @@ function renderAcademicForm(data, isActive) {
       ${academic.map((item, i) => `
         <div class="flex gap-sm items-center mb-sm">
           <span style="font-family:var(--font-mono);font-size:1.2rem;">&bull;</span>
-          <input type="text" class="form-input academic-input" data-index="${i}" value="${escapeHtml(item)}" placeholder="e.g. BTech- CGPA 7.79 | Minor in Cyber Security" style="flex:1;" />
+          <input type="text" class="form-input academic-input" data-index="${i}" value="${escapeHtml(typeof item === 'object' ? `${item.institution} ${item.details}` : item)}" placeholder="e.g. BTech- CGPA 7.79 | Minor in Cyber Security" style="flex:1;" />
           <button class="btn btn--sm btn--red academic-delete" data-index="${i}" title="Delete bullet">&times;</button>
         </div>
       `).join('')}
@@ -628,12 +827,12 @@ function renderAcademicForm(data, isActive) {
   `;
 }
 
-function renderExperienceForm(data, isActive) {
+function renderExperienceForm(data, isActive, isJakes) {
   const experience = data.experience || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="experience">
-      <h2 class="form-section-title">Experience & Internships</h2>
-      <p class="form-section-desc">Internships, virtual training, or industry experience with bulleted achievements.</p>
+      <h2 class="form-section-title">Experience &amp; Internships</h2>
+      <p class="form-section-desc">Professional roles, virtual training, or industry experience with bulleted achievements.</p>
 
       ${experience.map((exp, i) => `
         <div class="entry-card mb-md">
@@ -643,18 +842,18 @@ function renderExperienceForm(data, isActive) {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Role / Internship Title</label>
-            <input type="text" class="form-input" data-exp-field="title" data-exp-index="${i}" value="${escapeHtml(exp.title)}" placeholder="e.g. Web Development Internship" />
+            <label class="form-label">Role / Internship Title (Bold)</label>
+            <input type="text" class="form-input" data-exp-field="title" data-exp-index="${i}" value="${escapeHtml(exp.title)}" placeholder="e.g. Application Development Intern - Pega National Internship Program (NIP)" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Organization / Collaboration</label>
-            <input type="text" class="form-input" data-exp-field="company" data-exp-index="${i}" value="${escapeHtml(exp.company)}" placeholder="e.g. Edunet Foundation – AICTE Collaboration" />
+            <label class="form-label">Company / Platform</label>
+            <input type="text" class="form-input" data-exp-field="company" data-exp-index="${i}" value="${escapeHtml(exp.company)}" placeholder="e.g. Pega Platform or | Edunet Foundation - AICTE Collaboration" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Duration & Modality (Italic Line)</label>
-            <input type="text" class="form-input" data-exp-field="duration" data-exp-index="${i}" value="${escapeHtml(exp.duration)}" placeholder="e.g. Aug 21, 2025 – Sep 30, 2025 (6 weeks, Virtual)" />
+            <label class="form-label">Duration &amp; Modality (Right Aligned)</label>
+            <input type="text" class="form-input" data-exp-field="duration" data-exp-index="${i}" value="${escapeHtml(exp.duration)}" placeholder="e.g. Aug 4, 2026 - Sep 4, 2026 or Aug 21, 2025 - Sep 30, 2025 6 weeks, Virtual" />
           </div>
 
           <div class="form-group">
@@ -676,12 +875,12 @@ function renderExperienceForm(data, isActive) {
   `;
 }
 
-function renderProjectsForm(data, isActive) {
+function renderProjectsForm(data, isActive, isJakes) {
   const projects = data.projects || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="projects">
       <h2 class="form-section-title">Technical Projects</h2>
-      <p class="form-section-desc">Technical projects with Project Name, Tech Stack, and justified bullet points.</p>
+      <p class="form-section-desc">Technical projects with Project Name (Bold), Tech Stack, and justified bullet points.</p>
 
       ${projects.map((proj, i) => `
         <div class="entry-card mb-md">
@@ -691,13 +890,13 @@ function renderProjectsForm(data, isActive) {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Project Title (e.g. FINMATE AI)</label>
+            <label class="form-label">Project Title (Bold, e.g. FINMATE AI)</label>
             <input type="text" class="form-input" data-proj-field="name" data-proj-index="${i}" value="${escapeHtml(proj.name)}" placeholder="e.g. FINMATE AI" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Tech Stack</label>
-            <input type="text" class="form-input" data-proj-field="techStack" data-proj-index="${i}" value="${escapeHtml(proj.techStack)}" placeholder="e.g. Python, Flask, MySQL, LLM, RAG, React.js" />
+            <label class="form-label">Tech Stack (e.g. Python, Flask, React.js, MySQL, LLMs, RAG)</label>
+            <input type="text" class="form-input" data-proj-field="techStack" data-proj-index="${i}" value="${escapeHtml(proj.techStack)}" placeholder="e.g. Python, Flask, React.js, MySQL, LLMs, RAG" />
           </div>
 
           <div class="form-group">
@@ -719,12 +918,12 @@ function renderProjectsForm(data, isActive) {
   `;
 }
 
-function renderSkillsForm(data, isActive) {
+function renderSkillsForm(data, isActive, isJakes) {
   const skills = data.skills || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="skills">
       <h2 class="form-section-title">Technical Skills</h2>
-      <p class="form-section-desc">Bullet format with bold category prefix (e.g. Programming & Core Skills: Python, SQL...).</p>
+      <p class="form-section-desc">Category prefix is rendered in <strong>BOLD</strong> (e.g. <strong>Languages:</strong> Python, C, C++, JavaScript, TypeScript, SQL).</p>
 
       ${skills.map((s, i) => `
         <div class="entry-card mb-sm">
@@ -733,10 +932,10 @@ function renderSkillsForm(data, isActive) {
             <button class="btn btn--sm btn--red skill-cat-delete" data-index="${i}">&times;</button>
           </div>
           <div class="form-group mb-xs">
-            <input type="text" class="form-input" data-skill-field="category" data-skill-index="${i}" value="${escapeHtml(s.category)}" placeholder="Category Name (e.g. Programming & Core Skills)" />
+            <input type="text" class="form-input" data-skill-field="category" data-skill-index="${i}" value="${escapeHtml(s.category)}" placeholder="Category Name (e.g. Languages or Web & Frameworks)" />
           </div>
           <div class="form-group mb-xs">
-            <textarea class="form-textarea" data-skill-field="skills" data-skill-index="${i}" rows="2" placeholder="Skills list (e.g. Python, SQL, Java, C++, OOP, DSA)">${escapeHtml(s.skills)}</textarea>
+            <textarea class="form-textarea" data-skill-field="skills" data-skill-index="${i}" rows="2" placeholder="Skills list (e.g. Python, C, C++, JavaScript, TypeScript, SQL)">${escapeHtml(s.skills)}</textarea>
           </div>
         </div>
       `).join('')}
@@ -746,11 +945,56 @@ function renderSkillsForm(data, isActive) {
   `;
 }
 
-function renderAwardsForm(data, isActive) {
+function renderAwardsForm(data, isActive, isJakes) {
   const awards = data.awards || [];
+  const achievements = data.achievements || [];
+
+  if (isJakes) {
+    return `
+      <div class="form-section ${isActive ? 'active' : ''}" data-form="awards">
+        <h2 class="form-section-title">Certifications &amp; Achievements</h2>
+        <p class="form-section-desc">Professional certifications and competition or hackathon achievements.</p>
+
+        <!-- Certifications -->
+        <div class="entry-card mb-md">
+          <div class="flex justify-between items-center mb-xs">
+            <strong style="font-size:0.9rem;">Certifications</strong>
+            <button type="button" class="btn btn--sm btn--blue" id="btn-add-award">+ Add Certification</button>
+          </div>
+          <p class="form-hint mb-sm">Rendered as <strong>Certifications:</strong> IBM Web Development...; Google Generative AI...</p>
+
+          ${awards.map((item, i) => `
+            <div class="flex gap-sm items-center mb-xs">
+              <span style="font-family:var(--font-mono);font-size:1rem;">&bull;</span>
+              <input type="text" class="form-input award-input" data-index="${i}" value="${escapeHtml(item)}" placeholder="e.g. IBM Web Development Certification - IBM SkillsBuild (2025)" style="flex:1;" />
+              <button type="button" class="btn btn--sm btn--red award-delete" data-index="${i}">&times;</button>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Achievements -->
+        <div class="entry-card mb-sm">
+          <div class="flex justify-between items-center mb-xs">
+            <strong style="font-size:0.9rem;">Achievements</strong>
+            <button type="button" class="btn btn--sm btn--green" id="btn-add-achievement">+ Add Achievement</button>
+          </div>
+          <p class="form-hint mb-sm">Rendered as <strong>Achievements:</strong> Participated in 4 hackathons...; Winner, Amity Zync...</p>
+
+          ${achievements.map((item, i) => `
+            <div class="flex gap-sm items-center mb-xs">
+              <span style="font-family:var(--font-mono);font-size:1rem;">&bull;</span>
+              <input type="text" class="form-input achievement-input" data-index="${i}" value="${escapeHtml(item)}" placeholder="e.g. Winner, Amity Zync Hackathon - 2026 with FINMATE AI" style="flex:1;" />
+              <button type="button" class="btn btn--sm btn--red achievement-delete" data-index="${i}">&times;</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="awards">
-      <h2 class="form-section-title">Awards & Achievements</h2>
+      <h2 class="form-section-title">Awards &amp; Honors</h2>
       <p class="form-section-desc">Certifications, hackathon recognitions, and academic awards.</p>
 
       ${awards.map((item, i) => `
@@ -770,7 +1014,7 @@ function renderLeadershipForm(data, isActive) {
   const leadership = data.leadership || [];
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="leadership">
-      <h2 class="form-section-title">Leadership & Initiative</h2>
+      <h2 class="form-section-title">Leadership &amp; Initiative</h2>
       <p class="form-section-desc">Student initiatives, hackathon team lead roles, and organizational contributions.</p>
 
       ${leadership.map((item, i) => `
