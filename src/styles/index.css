@@ -1806,3 +1806,131 @@ body {
     display: none;
   }
 }
+
+/* ========================================
+   COMPONENT: Objective Banner & AI Generator Modal
+   ======================================== */
+.objective-banner-card {
+  background: var(--bg-primary);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.objective-modal-overlay {
+  z-index: 1500;
+}
+
+.objective-modal {
+  max-width: 780px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.obj-input-section {
+  background: var(--bg-secondary);
+  border: var(--border-width) solid var(--border-color);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.obj-jd-input {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.obj-results-container {
+  animation: fadeIn 0.3s ease;
+}
+
+.obj-results-header {
+  border-top: var(--border-width) dashed var(--border-color);
+  padding-top: var(--space-md);
+}
+
+.obj-extracted-box {
+  background: var(--bg-primary);
+  border: var(--border-width) solid var(--border-color);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.obj-extracted-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.obj-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.obj-card {
+  background: var(--bg-secondary);
+  border: var(--border-width) solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.obj-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-md);
+}
+
+.obj-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.obj-card-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.obj-card-length {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.obj-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.obj-card-body {
+  margin-bottom: var(--space-sm);
+}
+
+.obj-card-textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: var(--space-sm);
+  background: var(--bg-primary);
+}
+
+.obj-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+

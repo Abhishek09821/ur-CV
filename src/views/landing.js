@@ -25,13 +25,13 @@ export function renderLanding({ onSelectMode }) {
         <div class="card card--yellow mode-card" data-mode="manual" id="mode-manual">
           <span class="mode-icon">✏️</span>
           <div class="mode-title">Build Manually</div>
-          <p class="mode-desc">Complete control over every section. No AI processing — your data stays on your device.</p>
+          <p class="mode-desc">Complete control over every section with live preview and instant PDF export.</p>
         </div>
         
         <div class="card card--purple mode-card" data-mode="jd-assist" id="mode-jd-assist">
-          <span class="mode-icon">🤖</span>
-          <div class="mode-title">JD Assist</div>
-          <p class="mode-desc">Paste a job description and get AI-tailored suggestions based on your actual profile.</p>
+          <span class="mode-icon">🎯</span>
+          <div class="mode-title">AI Objective with JD</div>
+          <p class="mode-desc">Paste your target Job Description to generate tailored, high-impact career objectives.</p>
         </div>
       </div>
 

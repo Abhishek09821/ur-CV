@@ -11,7 +11,7 @@
  */
 
 import { renderPreview, buildAmityResumeHTML } from './preview.js';
-import { renderJDPanel } from './jd-panel.js';
+import { openObjectiveModal } from '../components/objective-modal.js';
 import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
 const SECTIONS = [
@@ -30,15 +30,15 @@ const SECTIONS = [
 export function renderBuilder({ store, mode, toast, onSave, onBack }) {
   const container = document.createElement('div');
   container.className = 'builder-wrapper';
-  let activeSection = 'personal';
+  let activeSection = mode === 'jd-assist' ? 'objective' : 'personal';
   let mobileView = 'form'; // 'form' | 'preview'
+  let hasAutoOpenedJDModal = false;
 
   function buildUI() {
     const data = store.getData();
     const completion = store.getCompletionStatus();
 
     container.innerHTML = `
-      ${mode === 'jd-assist' ? '<div id="jd-panel-mount"></div>' : ''}
       
       <!-- Mobile View Switcher -->
       <div class="builder-mobile-toggle">
@@ -215,7 +215,38 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
     });
 
     // ========== CAREER OBJECTIVE ==========
-    attachInputListener('input-objective', (v) => store.updateObjective(v));
+    attachInputListener('input-objective', (v) => {
+      store.updateObjective(v);
+      const counter = container.querySelector('#objective-char-counter');
+      if (counter) {
+        const words = v.trim().split(/\s+/).filter(Boolean).length;
+        counter.textContent = `${v.length} chars (${words} words)`;
+      }
+    });
+
+    const triggerObjectiveModal = () => {
+      openObjectiveModal({
+        store,
+        toast,
+        onApply: (generatedText) => {
+          store.updateObjective(generatedText);
+          const textarea = container.querySelector('#input-objective');
+          if (textarea) {
+            textarea.value = generatedText;
+          }
+          const counter = container.querySelector('#objective-char-counter');
+          if (counter) {
+            const words = generatedText.trim().split(/\s+/).filter(Boolean).length;
+            counter.textContent = `${generatedText.length} chars (${words} words)`;
+          }
+          updatePreviewOnly();
+          toast.show('✨ Career Objective applied to your resume!', 'success');
+        },
+      });
+    };
+
+    container.querySelector('#btn-open-objective-modal')?.addEventListener('click', triggerObjectiveModal);
+    container.querySelector('#btn-open-objective-modal-banner')?.addEventListener('click', triggerObjectiveModal);
 
     // ========== ACADEMIC DETAILS ==========
     container.querySelector('#btn-add-academic')?.addEventListener('click', () => {
@@ -420,13 +451,12 @@ export function renderBuilder({ store, mode, toast, onSave, onBack }) {
     attachInputListener('input-decl-date', (v) => store.updateDeclaration('date', v));
     attachInputListener('input-decl-place', (v) => store.updateDeclaration('place', v));
 
-    // Mount JD Assist Panel if mode is jd-assist
-    if (mode === 'jd-assist') {
-      const jdMount = container.querySelector('#jd-panel-mount');
-      if (jdMount) {
-        jdMount.innerHTML = '';
-        jdMount.appendChild(renderJDPanel({ store, toast }));
-      }
+    // Auto-open objective modal if user selected JD Assist mode
+    if (mode === 'jd-assist' && !hasAutoOpenedJDModal) {
+      hasAutoOpenedJDModal = true;
+      setTimeout(() => {
+        triggerObjectiveModal();
+      }, 150);
     }
   }
 
@@ -500,15 +530,44 @@ function renderPersonalForm(data, isActive) {
 }
 
 function renderObjectiveForm(data, isActive) {
+  const objectiveText = data.objective || '';
+  const wordCount = objectiveText.trim().split(/\s+/).filter(Boolean).length;
+
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="objective">
-      <h2 class="form-section-title">🎯 Career Objective</h2>
+      <div class="flex items-center justify-between flex-wrap gap-xs mb-sm">
+        <h2 class="form-section-title mb-0">🎯 Career Objective</h2>
+        <button type="button" class="btn btn--purple btn--sm" id="btn-open-objective-modal" title="Generate tailored career objective from any Job Description">
+          ✨ Generate with JD
+        </button>
+      </div>
       <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the PDF.</p>
 
+      <div class="objective-banner-card mb-md">
+        <div class="flex items-center justify-between flex-wrap gap-xs">
+          <div class="flex items-center gap-xs">
+            <span style="font-size:1.1rem;">🤖</span>
+            <strong style="font-size:0.85rem;">Targeting a specific role or company?</strong>
+          </div>
+          <button type="button" class="btn btn--yellow btn--sm" id="btn-open-objective-modal-banner">
+            ⚡ Open JD Generator
+          </button>
+        </div>
+        <p class="form-hint mt-xs" style="margin-bottom:0;">
+          Paste any Job Description to generate 4 diverse, placement-tailored objectives with unique phrasing every time.
+        </p>
+      </div>
+
       <div class="form-group">
-        <label class="form-label">Career Objective Text</label>
-        <textarea class="form-textarea" id="input-objective" rows="5" placeholder="Motivated final-year B.Tech Computer Science student...">${escapeHtml(data.objective || '')}</textarea>
-        <p class="form-hint">All text is automatically justified per Amity placement standards.</p>
+        <div class="flex items-center justify-between">
+          <label class="form-label mb-0" for="input-objective">Career Objective Text</label>
+          <span class="form-hint" id="objective-char-counter">${objectiveText.length} chars (${wordCount} words)</span>
+        </div>
+        <textarea class="form-textarea mt-xs" id="input-objective" rows="6" placeholder="Motivated final-year B.Tech Computer Science student...">${escapeHtml(objectiveText)}</textarea>
+        <div class="flex items-center justify-between mt-xs flex-wrap gap-xs">
+          <p class="form-hint mb-0">All text is automatically justified per Amity placement standards.</p>
+          <span class="badge badge--green" style="font-size:0.7rem;">Editable anytime</span>
+        </div>
       </div>
     </div>
   `;
