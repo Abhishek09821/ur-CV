@@ -1018,7 +1018,7 @@ body {
   background: #FFFFFF;
   box-shadow: var(--shadow-xl);
   border: var(--border-heavy) solid var(--border-color);
-  padding: 12mm 15mm;
+  padding: 16mm 20mm;
   box-sizing: border-box;
   font-family: 'Times New Roman', Times, serif;
   font-size: 10pt;
@@ -1511,7 +1511,7 @@ body {
   font-family: var(--font-mono);
 }
 
-@media (max-width: 850px) {
+@media screen and (max-width: 850px) {
   .footer-grid {
     grid-template-columns: 1fr;
     gap: var(--space-xl);
@@ -1563,7 +1563,7 @@ body {
 /* ========================================
    RESPONSIVE: Mobile-First
    ======================================== */
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .builder.active {
     grid-template-columns: 1fr;
   }
@@ -1608,7 +1608,7 @@ body {
   }
 }
 
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   .landing h1 {
     font-size: 1.8rem;
   }
@@ -1895,7 +1895,7 @@ body {
     min-height: 297mm !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 10mm 14mm !important;
+    padding: 16mm 20mm !important;
     margin: 0 auto !important;
     background: #FFFFFF !important;
     box-sizing: border-box !important;
@@ -1972,7 +1972,7 @@ body {
   display: none;
 }
 
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .builder-mobile-toggle {
     display: flex;
     border-bottom: var(--border-heavy) solid var(--border-color);
@@ -2244,7 +2244,7 @@ body {
 /* ========================================
    RESPONSIVE: Anti-Horizontal Overflow & Clean Mobile Layout
    ======================================== */
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .progress-bar {
     width: 100%;
     overflow-x: auto;
@@ -2337,7 +2337,7 @@ body {
   }
 }
 
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   .header {
     padding: var(--space-xs) var(--space-sm);
   }

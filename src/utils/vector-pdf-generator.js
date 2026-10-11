@@ -17,8 +17,8 @@ export function generateVectorPDF(data) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   const PAGE_WIDTH = 595.28;
   const PAGE_HEIGHT = 841.89;
-  const X_LEFT = 42;
-  const CONTENT_WIDTH = 511;
+  const X_LEFT = 56;
+  const CONTENT_WIDTH = 483;
   const PAGE_BOTTOM = 804;
   const TOP_MARGIN_P2 = 42;
 
