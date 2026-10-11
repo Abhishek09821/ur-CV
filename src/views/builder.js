@@ -38,7 +38,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       </div>
 
       <!-- Top Progress Navigation Bar -->
-      <div class="progress-bar">
+      <div class="progress-bar ${mobileView === 'preview' ? 'mobile-hidden' : ''}">
         ${SECTIONS.map((s) => `
           <div class="progress-step ${s.id === activeSection ? 'active' : ''} ${completion[s.id] ? 'completed' : ''}" data-section="${s.id}">
             <span class="step-number">${s.step}</span>
@@ -81,7 +81,7 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
             ${activeSection !== 'declaration' ? '<button class="btn btn--blue btn--sm" id="btn-next-section">Next &rarr;</button>' : ''}
             
             <div class="export-btn-group">
-              <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download 100% Searchable Vector PDF (No cutoff, ATS-ready)">
+              <button class="btn btn--green btn--sm" id="btn-export-pdf" title="Download 100% Searchable Vector PDF (Clean Vector Quality)">
                 Download PDF
               </button>
               <button class="btn btn--yellow btn--sm" id="btn-print-pdf" title="Open Browser Native Print dialog for 100% Vector PDF">

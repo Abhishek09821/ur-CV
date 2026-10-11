@@ -749,21 +749,25 @@ body {
 }
 
 .landing-features {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
-  max-width: 600px;
-  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  max-width: 560px;
+  margin: var(--space-xl) auto 0;
+  padding: 0 var(--space-sm);
 }
 
 .feature-chip {
-  padding: var(--space-sm) var(--space-md);
+  padding: 6px 14px;
   border: var(--border-width) solid var(--border-color);
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   box-shadow: 2px 2px 0 var(--border-color);
+  white-space: nowrap;
 }
 
 .feature-chip:nth-child(1) { background: var(--bg-accent-yellow); }
@@ -1592,7 +1596,7 @@ body {
   }
 
   .landing-features {
-    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
   }
 
   .form-row {
@@ -1610,7 +1614,7 @@ body {
   }
 
   .landing-features {
-    grid-template-columns: 1fr 1fr;
+    gap: 6px;
   }
 
   .progress-step .step-label {
@@ -1819,7 +1823,7 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm;
+    margin: 0 !important;
   }
 
   /* Reset all background and body */
@@ -1886,16 +1890,17 @@ body {
   .amity-resume-sheet {
     display: block !important;
     position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: auto !important;
-    height: auto !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 10mm 14mm !important;
+    margin: 0 auto !important;
     background: #FFFFFF !important;
     box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   .amity-resume-container {
@@ -2002,6 +2007,10 @@ body {
 
   .builder-preview.mobile-hidden {
     display: none;
+  }
+
+  .progress-bar.mobile-hidden {
+    display: none !important;
   }
 }
 
@@ -2236,23 +2245,121 @@ body {
    RESPONSIVE: Anti-Horizontal Overflow & Clean Mobile Layout
    ======================================== */
 @media (max-width: 900px) {
-  .amity-resume-wrapper {
+  .progress-bar {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: var(--space-sm);
   }
 
-  .amity-resume-sheet {
+  .amity-resume-wrapper {
+    width: 100%;
     max-width: 100%;
-    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  .amity-resume-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 14px 10px !important;
+    box-sizing: border-box !important;
+    border-width: 2px !important;
+    box-shadow: 2px 2px 0 var(--border-color) !important;
+    margin: 0 0 var(--space-md) 0 !important;
+    font-size: 8.5pt !important;
+  }
+
+  .amity-header {
+    grid-template-columns: 50px 1fr 56px !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .amity-shield-logo {
+    width: 46px !important;
+    height: 52px !important;
+  }
+
+  .amity-photo-box {
+    width: 52px !important;
+    height: 60px !important;
+  }
+
+  .amity-candidate-name {
+    font-size: 13pt !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
+  }
+
+  .amity-candidate-contact-line {
+    font-size: 7.5pt !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  .amity-bar {
+    font-size: 8pt !important;
+    padding: 2px 6px !important;
+    margin-top: 6px !important;
+    margin-bottom: 4px !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .amity-content {
+    margin-top: 3px !important;
+  }
+
+  .amity-bullet-list {
+    padding-left: 14px !important;
+    margin: 0 !important;
+  }
+
+  .amity-bullet-list li,
+  .amity-text-justified {
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .amity-item-title-row {
+    font-size: 8pt !important;
+  }
+
+  .amity-item-tech {
+    font-size: 7.5pt !important;
+  }
+
+  .amity-declaration-section {
+    margin-top: 8px !important;
+    font-size: 8pt !important;
   }
 }
 
 @media (max-width: 600px) {
-  .header-actions .btn {
+  .header {
     padding: var(--space-xs) var(--space-sm);
-    font-size: 0.75rem;
+  }
+
+  .header-logo {
+    font-size: 1.1rem;
+  }
+
+  .header-actions {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
+  .header-actions .btn {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+    box-shadow: 2px 2px 0 var(--border-color);
+  }
+
+  .header-actions #btn-save,
+  .header-actions #btn-delete {
+    display: none;
   }
 
   .mode-card--single {
@@ -2268,7 +2375,13 @@ body {
   }
 
   .landing-features {
-    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 0 4px;
+  }
+
+  .feature-chip {
+    padding: 5px 10px;
+    font-size: 0.68rem;
   }
 }
 

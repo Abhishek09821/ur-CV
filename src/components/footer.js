@@ -15,7 +15,7 @@ export function renderFooter({ onNavigate } = {}) {
             <span class="logo-accent">ur</span>-CV
           </div>
           <p class="footer-tagline">
-            Official Amity University Placement Resume Builder. Fully client-side, privacy-preserving, and ATS compliant.
+            Official Amity University Placement Resume Builder. Fully client-side, structured, and privacy-preserving.
           </p>
           <div class="footer-meta-badge">
             PLACEMENT COMPLIANT TEMPLATE
