@@ -293,8 +293,13 @@ export class ResumeStore {
     }
   }
 
-  reset() {
-    this.data = JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME));
+  reset(targetTemplate) {
+    const tpl = targetTemplate || this.data.template || 'amity';
+    if (tpl === 'jakes') {
+      this.data = JSON.parse(JSON.stringify(JAKES_DEFAULT_RESUME));
+    } else {
+      this.data = JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME));
+    }
     this.notify();
   }
 

@@ -89,11 +89,17 @@ class App {
     }
   }
 
-  deleteDraft() {
-    localStorage.removeItem('ur-cv-draft');
-    this.store.reset();
-    this.toast.show('Draft reset to default Amity format.', 'info');
-    this.navigateTo('landing');
+  resetDraft() {
+    const currentTemplate = this.store.getTemplate ? this.store.getTemplate() : 'amity';
+    const templateName = currentTemplate === 'jakes' ? "Jake's Resume" : "Amity Official Format";
+
+    this.store.reset(currentTemplate);
+    try {
+      localStorage.setItem('ur-cv-draft', JSON.stringify(this.store.getData()));
+    } catch (e) {}
+
+    this.toast.show(`Draft reset to original ${templateName}.`, 'info');
+    this.render();
   }
 
   navigateTo(view, push = true) {
@@ -128,8 +134,10 @@ class App {
       },
       onSave: () => this.saveDraft(),
       onDelete: () => {
-        if (confirm('Reset draft to original Amity template? This will replace your local edits.')) {
-          this.deleteDraft();
+        const currentTemplate = this.store.getTemplate ? this.store.getTemplate() : 'amity';
+        const templateName = currentTemplate === 'jakes' ? "Jake's Resume" : "Amity Official Format";
+        if (confirm(`Reset draft to original ${templateName}? This will replace your local edits with the clean template data.`)) {
+          this.resetDraft();
         }
       },
     });
