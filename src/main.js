@@ -139,8 +139,8 @@ class App {
       ticker.className = 'ticker';
       ticker.innerHTML = `
         <div class="ticker-inner">
-          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; PLACEMENT CELL FORMAT &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
-          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; PLACEMENT CELL FORMAT &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
+          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
+          OFFICIAL AMITY UNIVERSITY RESUME FORMAT &nbsp;&bull;&nbsp; CLIENT-SIDE PDF COMPILATION &nbsp;&bull;&nbsp; ZERO DATA RETENTION &nbsp;&bull;&nbsp; FREE & OPEN SOURCE &nbsp;&bull;&nbsp;
         </div>
       `;
       this.root.appendChild(ticker);

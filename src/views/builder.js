@@ -543,14 +543,14 @@ function renderObjectiveForm(data, isActive) {
           Generate from JD
         </button>
       </div>
-      <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the placement PDF.</p>
+      <p class="form-section-desc">Full paragraph summary. Formatted with justified text alignment in the official PDF.</p>
 
       <div class="objective-banner-card mb-md">
         <div class="flex items-center justify-between flex-wrap gap-xs">
           <div>
             <strong style="font-size:0.85rem;text-transform:uppercase;">Targeting a specific role or company?</strong>
             <p class="form-hint mt-xs" style="margin-bottom:0;">
-              Paste any Job Description to generate 4 diverse, placement-tailored objectives with unique phrasing.
+              Paste any Job Description to generate 4 diverse, role-tailored objectives with unique phrasing.
             </p>
           </div>
           <button type="button" class="btn btn--yellow btn--sm" id="btn-open-objective-modal-banner">
@@ -566,7 +566,7 @@ function renderObjectiveForm(data, isActive) {
         </div>
         <textarea class="form-textarea mt-xs" id="input-objective" rows="6" placeholder="Motivated final-year B.Tech Computer Science student...">${escapeHtml(objectiveText)}</textarea>
         <div class="flex items-center justify-between mt-xs flex-wrap gap-xs">
-          <p class="form-hint mb-0">All text is automatically justified per Amity placement standards.</p>
+          <p class="form-hint mb-0">All text is automatically justified per official Amity format.</p>
           <span class="badge badge--green" style="font-size:0.7rem;">Editable anytime</span>
         </div>
       </div>
@@ -795,7 +795,7 @@ function renderDeclarationForm(data, isActive) {
   return `
     <div class="form-section ${isActive ? 'active' : ''}" data-form="declaration">
       <h2 class="form-section-title">Self Declaration</h2>
-      <p class="form-section-desc">Standard placement cell declaration with Date, Place, divider, and Candidate Name.</p>
+      <p class="form-section-desc">Standard declaration with Date, Place, divider, and Candidate Name.</p>
 
       <div class="form-group">
         <label class="form-label">Declaration Statement</label>

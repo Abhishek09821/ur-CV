@@ -46,7 +46,7 @@ export function openObjectiveModal({ store, toast, onApply }) {
         <div>
           <div class="flex items-center gap-xs">
             <span class="badge badge--purple" style="font-size:0.75rem;">JD TAILORED</span>
-            <span class="badge badge--yellow" style="font-size:0.75rem;">AMITY PLACEMENT FORMAT</span>
+            <span class="badge badge--yellow" style="font-size:0.75rem;">OFFICIAL AMITY FORMAT</span>
           </div>
           <h2 class="modal-title mt-xs" id="obj-modal-title">Career Objective Generator</h2>
           <p class="form-hint" style="margin-top:2px;">

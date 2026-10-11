@@ -15,10 +15,10 @@ export function renderFooter({ onNavigate } = {}) {
             <span class="logo-accent">ur</span>-CV
           </div>
           <p class="footer-tagline">
-            Official Amity University Placement Resume Builder. Fully client-side, structured, and privacy-preserving.
+            Official Amity University Resume Builder. Fully client-side, structured, and privacy-preserving.
           </p>
           <div class="footer-meta-badge">
-            PLACEMENT COMPLIANT TEMPLATE
+            OFFICIAL AMITY TEMPLATE
           </div>
         </div>
 
@@ -64,7 +64,7 @@ export function renderFooter({ onNavigate } = {}) {
       <!-- Bottom Bar -->
       <div class="footer-bottom">
         <div class="footer-copy">
-          &copy; ${new Date().getFullYear()} ur-CV &bull; Placement Format for Amity University Students
+          &copy; ${new Date().getFullYear()} ur-CV &bull; Official Format for Amity University Students
         </div>
         <div class="footer-disclaimer">
           Client-Side Only &bull; Zero Server Storage &bull; Private & Secure

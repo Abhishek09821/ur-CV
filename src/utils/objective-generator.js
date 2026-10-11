@@ -368,10 +368,10 @@ export function generateObjectivesFromJD(jdText = '', candidateData = {}, option
     // ----------------------------------------------------
     {
       id: 'placement-ready',
-      title: 'Campus Placement & Growth',
-      tag: 'Placement Ready',
+      title: 'Career Growth & Foundation',
+      tag: 'Career Growth',
       badgeClass: 'badge--purple',
-      description: 'Official Amity campus placement style balancing academic foundation, projects, and career ambition.',
+      description: 'Official Amity format balancing academic foundation, technical projects, and career ambition.',
       text: buildPlacementReadyObjective({
         studentDegree,
         targetRole,

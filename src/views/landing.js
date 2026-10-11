@@ -7,16 +7,16 @@ export function renderLanding({ onSelectMode }) {
 
   section.innerHTML = `
     <div class="landing-content animate-in">
-      <div class="landing-badge">AMITY UNIVERSITY PLACEMENT FORMAT</div>
+      <div class="landing-badge">OFFICIAL AMITY UNIVERSITY FORMAT</div>
       
       <h1>
         Build Your<br>
-        <span class="highlight">Placement-Ready</span><br>
+        <span class="highlight">Professional</span><br>
         Resume
       </h1>
       
       <p class="landing-subtitle">
-        Mobile-first resume builder adhering to the official Amity placement template.
+        Mobile-first resume builder adhering to the official Amity University template.
         Enter your credentials, inspect live A4 layout, and export searchable vector PDF without account sign-up.
       </p>
 
