@@ -29,20 +29,8 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
   function buildUI() {
     const data = store.getData();
     const completion = store.getCompletionStatus();
-    const currentTemplate = store.getTemplate ? store.getTemplate() : (data.template || 'amity');
 
     container.innerHTML = `
-      <!-- Resume Template Switcher -->
-      <div class="template-selector-bar">
-        <span class="template-selector-label">Resume Template:</span>
-        <button class="template-choice-btn ${currentTemplate === 'amity' ? 'active' : ''}" data-template="amity" type="button">
-          🎓 Amity Official Format
-        </button>
-        <button class="template-choice-btn ${currentTemplate === 'jakes' ? 'active' : ''}" data-template="jakes" type="button">
-          📄 Jake's Resume
-        </button>
-      </div>
-
       <!-- Mobile View Switcher -->
       <div class="builder-mobile-toggle">
         <button class="toggle-btn ${mobileView === 'form' ? 'active' : ''}" data-view="form">Edit Form</button>
@@ -140,20 +128,6 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
   }
 
   function attachEvents() {
-    // Template Selector buttons
-    container.querySelectorAll('.template-choice-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const selected = btn.dataset.template;
-        if (store.setTemplate) {
-          store.setTemplate(selected);
-        } else {
-          store.getData().template = selected;
-        }
-        buildUI();
-        toast.show(`Template switched to ${selected === 'jakes' ? "Jake's Resume" : 'Amity Official Resume'}`, 'info');
-      });
-    });
-
     // Navigation items
     container.querySelectorAll('[data-section]').forEach((el) => {
       el.addEventListener('click', () => {

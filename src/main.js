@@ -10,6 +10,7 @@ import { renderNotFound } from './views/not-found.js';
 import { renderHeader } from './components/header.js';
 import { renderFooter } from './components/footer.js';
 import { ToastManager } from './components/toast.js';
+import { openTemplateModal } from './components/template-modal.js';
 import { AMITY_DEFAULT_PHOTO_DATA_URL } from './assets/amity-assets.js';
 
 class App {
@@ -149,7 +150,15 @@ class App {
     // Main Content
     if (this.currentView === 'landing') {
       const landing = renderLanding({
-        onSelectMode: () => this.navigateTo('builder'),
+        onSelectMode: () => {
+          openTemplateModal({
+            store: this.store,
+            toast: this.toast,
+            onSelect: () => {
+              this.navigateTo('builder');
+            },
+          });
+        },
       });
       this.root.appendChild(landing);
     } else if (this.currentView === 'builder') {
@@ -177,6 +186,19 @@ class App {
     // Structured Footer
     const footer = renderFooter({
       onNavigate: (view) => this.navigateTo(view),
+      onShowTemplates: () => {
+        openTemplateModal({
+          store: this.store,
+          toast: this.toast,
+          onSelect: () => {
+            if (this.currentView === 'builder') {
+              this.render();
+            } else {
+              this.navigateTo('builder');
+            }
+          },
+        });
+      },
     });
     this.root.appendChild(footer);
 
