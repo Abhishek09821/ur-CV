@@ -135,7 +135,7 @@ export function buildJakesResumeHTML(data) {
                     <div class="jakes-entry">
                       <div class="jakes-row">
                         <span class="jakes-entry-title">
-                          <strong>${esc(exp.title || '')}</strong>${exp.company ? ` <span>${esc(exp.company)}</span>` : ''}
+                          <strong>${esc(exp.title || '')}</strong>${exp.company ? ` <span> | ${esc(exp.company.replace(/^[\|\s–—\-]+/, ''))}</span>` : ''}
                         </span>
                         ${exp.duration ? `<span class="jakes-entry-date">${esc(exp.duration)}</span>` : ''}
                       </div>
@@ -157,7 +157,7 @@ export function buildJakesResumeHTML(data) {
                     <div class="jakes-entry">
                       <div class="jakes-row">
                         <span class="jakes-entry-title">
-                          <strong>${esc(proj.name || '')}</strong>${proj.techStack ? ` <span class="jakes-tech-stack">${esc(proj.techStack)}</span>` : ''}
+                          <strong>${esc(proj.name || '')}</strong>${proj.techStack ? ` <span class="jakes-tech-stack"> | ${esc(proj.techStack.replace(/^[\|\s–—\-]+/, ''))}</span>` : ''}
                         </span>
                       </div>
                       ${proj.bullets && proj.bullets.filter(Boolean).length > 0 ? `
