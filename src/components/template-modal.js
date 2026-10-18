@@ -38,7 +38,6 @@ export function openTemplateModal({ store, toast, onSelect }) {
         <!-- Card 1: Amity Official Format -->
         <div class="template-card ${currentTemplate === 'amity' ? 'active' : ''}" data-tpl="amity">
           <div class="template-card-header">
-            <div class="template-card-icon">🎓</div>
             <div class="template-card-meta">
               <span class="template-badge template-badge--amity">OFFICIAL FORMAT</span>
               <h3 class="template-card-title">Amity Official</h3>
@@ -50,14 +49,14 @@ export function openTemplateModal({ store, toast, onSelect }) {
           </p>
 
           <ul class="template-card-features">
-            <li><span>✓</span> Shield logo &amp; photo box</li>
-            <li><span>✓</span> Charcoal section bars</li>
-            <li><span>✓</span> Self-Declaration table</li>
+            <li>Shield logo &amp; photo box</li>
+            <li>Charcoal section bars</li>
+            <li>Self-Declaration table</li>
           </ul>
 
           <div class="template-card-action">
             <button class="btn btn--block ${currentTemplate === 'amity' ? 'btn--yellow' : 'btn--white'} btn-select-tpl" data-tpl="amity">
-              ${currentTemplate === 'amity' ? '✓ Selected' : 'Use Amity &rarr;'}
+              ${currentTemplate === 'amity' ? 'Selected' : 'Use Amity &rarr;'}
             </button>
           </div>
         </div>
@@ -65,7 +64,6 @@ export function openTemplateModal({ store, toast, onSelect }) {
         <!-- Card 2: Jake's Resume -->
         <div class="template-card ${currentTemplate === 'jakes' ? 'active' : ''}" data-tpl="jakes">
           <div class="template-card-header">
-            <div class="template-card-icon">📄</div>
             <div class="template-card-meta">
               <span class="template-badge template-badge--jakes">LATEX STANDARD</span>
               <h3 class="template-card-title">Jake's Resume</h3>
@@ -77,14 +75,14 @@ export function openTemplateModal({ store, toast, onSelect }) {
           </p>
 
           <ul class="template-card-features">
-            <li><span>✓</span> Centered header &amp; links</li>
-            <li><span>✓</span> 1px horizontal rule lines</li>
-            <li><span>✓</span> Right-aligned dates</li>
+            <li>Centered header &amp; links</li>
+            <li>1px horizontal rule lines</li>
+            <li>Right-aligned dates</li>
           </ul>
 
           <div class="template-card-action">
             <button class="btn btn--block ${currentTemplate === 'jakes' ? 'btn--yellow' : 'btn--white'} btn-select-tpl" data-tpl="jakes">
-              ${currentTemplate === 'jakes' ? '✓ Selected' : "Use Jake's &rarr;"}
+              ${currentTemplate === 'jakes' ? 'Selected' : "Use Jake's &rarr;"}
             </button>
           </div>
         </div>

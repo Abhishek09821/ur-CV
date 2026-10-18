@@ -45,7 +45,13 @@ export function openPhotoCompressorModal({ initialFile = null, onApply, toast } 
         <div class="compressor-dropzone" id="comp-dropzone">
           <input type="file" id="comp-file-input" accept="image/jpeg,image/png,image/webp" style="display:none;" />
           <div class="compressor-dropzone-inner">
-            <div style="font-size:2rem;margin-bottom:6px;">📸</div>
+            <div style="margin-bottom:8px;">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
             <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px;">
               Click to select or drag photo here
             </div>
@@ -72,7 +78,7 @@ export function openPhotoCompressorModal({ initialFile = null, onApply, toast } 
               </div>
               <div class="compressor-stat-item">
                 <span class="stat-label">Status:</span>
-                <span class="stat-badge" id="comp-stat-badge">✓ READY (UNDER 1MB)</span>
+                <span class="stat-badge" id="comp-stat-badge">READY (UNDER 1MB)</span>
               </div>
             </div>
           </div>
@@ -80,14 +86,14 @@ export function openPhotoCompressorModal({ initialFile = null, onApply, toast } 
           <!-- Action Buttons -->
           <div class="compressor-actions">
             <button type="button" class="btn btn--green btn--block" id="btn-comp-apply" style="font-size:0.95rem;padding:10px 14px;">
-              ✓ Directly Apply to Resume
+              Directly Apply to Resume
             </button>
             <div class="flex gap-sm mt-xs">
               <button type="button" class="btn btn--white flex-1" id="btn-comp-download" style="font-size:0.85rem;">
-                ⬇ Download Compressed Photo
+                Download Compressed Photo
               </button>
               <button type="button" class="btn btn--white flex-1" id="btn-comp-reupload" style="font-size:0.85rem;">
-                🔄 Choose Another Photo
+                Choose Another Photo
               </button>
             </div>
           </div>
@@ -197,7 +203,7 @@ export function openPhotoCompressorModal({ initialFile = null, onApply, toast } 
         canvas.toBlob(
           (blob) => {
             compressedBlob = blob;
-            statComp.textContent = formatBytes(blob.size) + ' (Under 1MB ✓)';
+            statComp.textContent = formatBytes(blob.size) + ' (Under 1MB)';
             previewImg.src = compressedDataUrl;
 
             dropzone.style.display = 'none';

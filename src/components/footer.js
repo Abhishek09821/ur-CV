@@ -30,7 +30,7 @@ export function renderFooter({ onNavigate, onShowPreview } = {}) {
             <ul class="footer-links">
               <li><a href="/" class="footer-link" data-route="landing">Home</a></li>
               <li><a href="/builder" class="footer-link" data-route="builder">Resume Editor</a></li>
-              <li><button type="button" class="footer-link footer-link-btn" id="footer-btn-all-formats">All Resume Formats ✨</button></li>
+              <li><button type="button" class="footer-link footer-link-btn" id="footer-btn-all-formats">All Resume Formats</button></li>
               <li><a href="/builder" class="footer-link" data-route="builder">Career Objective Tool</a></li>
             </ul>
           </div>

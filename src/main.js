@@ -180,46 +180,48 @@ class App {
       }
     }
 
-    // Header
-    const header = renderHeader({
-      currentView: this.currentView,
-      template: this.store.getTemplate ? this.store.getTemplate() : 'amity',
-      onHome: () => this.navigateTo('landing'),
-      onBack: () => {
-        if (window.history.length > 1) {
-          window.history.back();
-        } else {
-          this.navigateTo('landing');
-        }
-      },
-      onUpload: () => {
-        openUploadModal({
-          toast: this.toast,
-          onComplete: (engine) => {
-            this.uploadedEngine = engine;
-            this.navigateTo('upload-editor');
-          },
-        });
-      },
-      onSwitchTemplate: () => {
-        openTemplateModal({
-          store: this.store,
-          toast: this.toast,
-          onSelect: () => {
-            this.render();
-          },
-        });
-      },
-      onSave: () => this.saveDraft(),
-      onDelete: () => {
-        const currentTemplate = this.store.getTemplate ? this.store.getTemplate() : 'amity';
-        const templateName = currentTemplate === 'jakes' ? "Jake's Resume" : "Amity Official Format";
-        if (confirm(`Reset draft to original ${templateName}? This will replace your local edits with the clean template data.`)) {
-          this.resetDraft();
-        }
-      },
-    });
-    this.root.appendChild(header);
+    // Header (rendered for builder and other sub-views, omitted on landing)
+    if (this.currentView !== 'landing') {
+      const header = renderHeader({
+        currentView: this.currentView,
+        template: this.store.getTemplate ? this.store.getTemplate() : 'amity',
+        onHome: () => this.navigateTo('landing'),
+        onBack: () => {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            this.navigateTo('landing');
+          }
+        },
+        onUpload: () => {
+          openUploadModal({
+            toast: this.toast,
+            onComplete: (engine) => {
+              this.uploadedEngine = engine;
+              this.navigateTo('upload-editor');
+            },
+          });
+        },
+        onSwitchTemplate: () => {
+          openTemplateModal({
+            store: this.store,
+            toast: this.toast,
+            onSelect: () => {
+              this.render();
+            },
+          });
+        },
+        onSave: () => this.saveDraft(),
+        onDelete: () => {
+          const currentTemplate = this.store.getTemplate ? this.store.getTemplate() : 'amity';
+          const templateName = currentTemplate === 'jakes' ? "Jake's Resume" : "Amity Official Format";
+          if (confirm(`Reset draft to original ${templateName}? This will replace your local edits with the clean template data.`)) {
+            this.resetDraft();
+          }
+        },
+      });
+      this.root.appendChild(header);
+    }
 
     // Clean Neo-Brutalist Ticker
     if (this.currentView === 'landing') {

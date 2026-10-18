@@ -46,7 +46,6 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       return `
         <div class="space-limit-alert" id="gauge-${sectionType}">
           <div class="space-alert-header">
-            <span class="space-alert-icon">⚠️</span>
             <strong class="space-alert-title">Space Limit Exceeded (+${cap.excessLines} lines)</strong>
             <span class="space-alert-badge">${cap.currentLines}/${cap.maxLines} lines (${cap.percentUsed}%)</span>
           </div>
@@ -64,7 +63,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       <div class="space-limit-ok" id="gauge-${sectionType}">
         <div class="flex items-center justify-between text-xs mb-xs">
           <span class="flex items-center gap-xs font-bold" style="color: #15803d;">
-            <span>✓</span> Fits section cleanly
+            Fits section cleanly
           </span>
           <span class="font-bold" style="color: #4b5563;">
             ${cap.currentLines} / ${cap.maxLines} lines used (${cap.percentUsed}%)
@@ -93,23 +92,23 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           </button>
           <div class="doc-badge-group">
             <span class="doc-title" title="${escapeHtml(currentData.fileName)}">
-              📄 ${escapeHtml(currentData.fileName)}
+              ${escapeHtml(currentData.fileName)}
             </span>
             <span class="badge badge--black doc-badge">${pageLabel}</span>
             <span class="badge badge--blue doc-badge">${formatLabel}</span>
             <span class="badge badge--white doc-badge">${fontLabel}</span>
             <span class="badge ${health.anyExceeded ? 'badge--red' : 'badge--green'} doc-badge" id="topbar-space-status">
-              ${health.anyExceeded ? `⚠️ EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)` : '✓ FITS RESUME CLEANLY'}
+              ${health.anyExceeded ? `EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)` : 'FITS RESUME CLEANLY'}
             </span>
           </div>
         </div>
 
         <div class="topbar-actions">
           <button type="button" class="btn btn--sm btn--purple" id="btn-open-preview">
-            👁️ Preview Resume
+            Preview Resume
           </button>
           <button type="button" class="btn btn--sm btn--green" id="btn-editor-download">
-            ⬇️ Download PDF
+            Download PDF
           </button>
         </div>
       </div>
@@ -130,7 +129,6 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           <div class="card card--yellow editor-section-card" id="card-objective">
             <div class="section-card-header">
               <div class="flex items-center gap-xs">
-                <span class="section-icon">🎯</span>
                 <span class="section-title">Career Objective &amp; Professional Summary</span>
               </div>
               <span class="badge badge--yellow" id="obj-char-count">
@@ -159,7 +157,6 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           <div class="card card--blue editor-section-card" id="card-skills">
             <div class="section-card-header">
               <div class="flex items-center gap-xs">
-                <span class="section-icon">💻</span>
                 <span class="section-title">Technical Skills</span>
               </div>
               <span class="badge badge--blue" id="skills-line-count">
@@ -188,7 +185,6 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           <div class="card card--green editor-section-card" id="card-experience">
             <div class="section-card-header">
               <div class="flex items-center gap-xs">
-                <span class="section-icon">💼</span>
                 <span class="section-title">Work Experience &amp; Internships</span>
               </div>
               <span class="badge badge--green" id="exp-line-count">
@@ -218,10 +214,10 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       <!-- Mobile Sticky Bottom Toolbar -->
       <div class="upload-editor-mobile-bar">
         <button type="button" class="btn btn--purple btn--block btn-mobile-preview" id="btn-mobile-preview">
-          👁️ Preview Resume
+          Preview Resume
         </button>
         <button type="button" class="btn btn--green btn--block btn-mobile-download" id="btn-mobile-download">
-          ⬇️ Download PDF
+          Download PDF
         </button>
       </div>
 
@@ -241,7 +237,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
                 DOWNLOAD PDF
               </button>
               <button type="button" class="btn btn--xs btn--red" id="btn-close-preview">
-                ✕ CLOSE
+                CLOSE
               </button>
             </div>
           </div>
@@ -274,9 +270,9 @@ export function renderUploadEditor({ engine, toast, onBack }) {
 
     return `
       <div class="preview-overflow-banner">
-        <span class="preview-overflow-icon">⚠️</span>
+        <span class="badge badge--red">SPACE LIMIT</span>
         <div class="preview-overflow-text">
-          <strong>Space Limit Warning:</strong> Content in <em>${exceededSections.join(', ')}</em> exceeds available space. Excess text was clipped cleanly to protect other sections. Shorten in the editor to make all text fit cleanly.
+          <strong>Notice:</strong> Content in <em>${exceededSections.join(', ')}</em> exceeds available space. Excess text was clipped cleanly to protect other sections. Shorten in the editor to make all text fit cleanly.
         </div>
       </div>
     `;
@@ -302,8 +298,8 @@ export function renderUploadEditor({ engine, toast, onBack }) {
     if (topStatusEl) {
       topStatusEl.className = `badge ${health.anyExceeded ? 'badge--red' : 'badge--green'} doc-badge`;
       topStatusEl.textContent = health.anyExceeded
-        ? `⚠️ EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)`
-        : '✓ FITS RESUME CLEANLY';
+        ? `EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)`
+        : 'FITS RESUME CLEANLY';
     }
 
     // Modal banner
