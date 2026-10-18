@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Page Not Found | ur-CV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #FDFBF7;
+      color: #111827;
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+    .error-card {
+      background: #FFFFFF;
+      border: 3px solid #111827;
+      box-shadow: 6px 6px 0px #111827;
+      max-width: 580px;
+      width: 100%;
+      padding: 36px 28px;
+      text-align: center;
+    }
+    .error-badge {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      background: #EF4444;
+      color: #FFFFFF;
+      padding: 4px 12px;
+      border: 2px solid #111827;
+      box-shadow: 2px 2px 0 #111827;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #4B5563;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .info-box {
+      background: #FDFBF7;
+      border: 2px solid #111827;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      text-align: left;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      border: 2px solid #111827;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #111827;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #111827;
+    }
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 #111827;
+    }
+    .btn-home {
+      background: #FEF08A;
+      color: #111827;
+    }
+    .btn-builder {
+      background: #C4B5FD;
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="error-badge">ERROR 404</div>
+    <h1>Page Not Found</h1>
+    <p>
+      The requested link does not exist or was moved. You can return to the home gateway or launch the resume editor directly.
+    </p>
+
+    <div class="info-box">
+      <strong>STATUS:</strong> 404 NOT_FOUND<br />
+      <strong>VALID PATHS:</strong> / (Home), /builder (Resume Builder), /edit-resume (Quick Editor)
+    </div>
+
+    <div class="actions">
+      <a href="/" class="btn btn-home">&larr; Return to Home</a>
+      <a href="/builder" class="btn btn-builder">Open Resume Builder &rarr;</a>
+    </div>
+  </div>
+</body>
+</html>
