@@ -317,7 +317,8 @@ export class ResumeStore {
           }),
         };
       } else {
-        this.data = { ...JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME)), ...data };
+        const base = data.template === 'jakes' ? JAKES_DEFAULT_RESUME : UNIVERSAL_DEFAULT_RESUME;
+        this.data = { ...JSON.parse(JSON.stringify(base)), ...data };
       }
       this.notify();
     }

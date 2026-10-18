@@ -24,6 +24,17 @@ class App {
     this.currentView = this.resolveRoute();
     this.root = document.getElementById('app');
 
+    // Setup automatic background saving to local storage whenever store data changes
+    this._saveTimer = null;
+    this.store.subscribe(() => {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(() => {
+        try {
+          localStorage.setItem('ur-cv-draft', JSON.stringify(this.store.getData()));
+        } catch (e) {}
+      }, 400);
+    });
+
     this.init();
   }
 
@@ -54,7 +65,14 @@ class App {
 
     // Ensure initial state has history record
     const initialView = this.resolveRoute();
-    const initialPath = initialView === 'builder' ? '/builder' : initialView === 'landing' ? '/' : window.location.pathname;
+    const initialPath =
+      initialView === 'builder'
+        ? '/builder'
+        : initialView === 'upload-editor'
+        ? '/edit-resume'
+        : initialView === 'landing'
+        ? '/'
+        : window.location.pathname;
     window.history.replaceState({ view: initialView }, '', initialPath);
 
     // Suppress browser default title during print to eliminate watermarks/headers
@@ -66,8 +84,9 @@ class App {
       if (this._prevDocTitle) document.title = this._prevDocTitle;
     });
 
-    this.render();
+    // Load draft into store BEFORE rendering so initial view reflects saved user data
     this.loadDraft();
+    this.render();
   }
 
   loadDraft() {
@@ -151,24 +170,39 @@ class App {
         }
         return;
       } else {
-        // Auto-load sample resume if directly navigated to /edit-resume
+        // Auto-load resume and user draft if directly navigated or reloaded at /edit-resume
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'container py-xl text-center';
         loadingDiv.innerHTML = `
           <div class="card p-xl mx-auto" style="max-width: 500px; margin-top: 60px;">
             <h2 style="font-family: var(--font-display); font-size: 1.5rem; text-transform: uppercase;">Loading Resume Editor...</h2>
-            <p class="text-sm mt-sm" style="color: var(--text-secondary);">Initializing universal in-place resume engine...</p>
+            <p class="text-sm mt-sm" style="color: var(--text-secondary);">Restoring document and saved draft from local storage...</p>
           </div>
         `;
         this.root.appendChild(loadingDiv);
 
-        import('./utils/pdf-document-engine.js').then(async ({ PDFDocumentEngine }) => {
+        Promise.all([
+          import('./utils/pdf-document-engine.js'),
+          import('./utils/draft-storage.js'),
+        ]).then(async ([{ PDFDocumentEngine }, { getUploadedPdfFile, getUploadDraft }]) => {
           try {
-            const res = await fetch('/Abhishek_Tiwari_Resume_Updated.pdf');
-            const blob = await res.blob();
-            const file = new File([blob], 'Abhishek_Tiwari_Resume_Updated.pdf', { type: 'application/pdf' });
+            let file = await getUploadedPdfFile();
+            if (!file) {
+              const res = await fetch('/Abhishek_Tiwari_Resume_Updated.pdf');
+              const blob = await res.blob();
+              file = new File([blob], 'Abhishek_Tiwari_Resume_Updated.pdf', { type: 'application/pdf' });
+            }
             const engine = new PDFDocumentEngine();
             await engine.loadFile(file);
+
+            // Re-apply saved local storage edits
+            const draft = getUploadDraft();
+            if (draft) {
+              if (typeof draft.objective === 'string') engine.updateObjective(draft.objective);
+              if (typeof draft.skillsText === 'string') engine.updateSkillsText(draft.skillsText);
+              if (typeof draft.experienceText === 'string') engine.updateExperienceText(draft.experienceText);
+            }
+
             this.uploadedEngine = engine;
             this.render();
           } catch (e) {

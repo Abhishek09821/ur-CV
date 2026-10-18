@@ -7,6 +7,7 @@
  */
 
 import { PDFDocumentEngine } from '../utils/pdf-document-engine.js';
+import { saveUploadedPdfFile, clearUploadDraft } from '../utils/draft-storage.js';
 
 export function openUploadModal({ toast, onComplete }) {
   const existing = document.getElementById('upload-resume-modal-overlay');
@@ -114,6 +115,8 @@ export function openUploadModal({ toast, onComplete }) {
       refresh();
 
       await engine.loadFile(file);
+      await saveUploadedPdfFile(file);
+      clearUploadDraft();
 
       statusMessage = 'Preparing editable sections (Objective, Skills, Experience)...';
       refresh();

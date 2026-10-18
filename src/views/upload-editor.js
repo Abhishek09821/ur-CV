@@ -12,6 +12,8 @@
  * Preview is shown on demand via "Preview Resume" and allows instant PDF download.
  */
 
+import { saveUploadDraft, getUploadDraft } from '../utils/draft-storage.js';
+
 export function renderUploadEditor({ engine, toast, onBack }) {
   const container = document.createElement('div');
   container.className = 'upload-editor-container';
@@ -19,6 +21,44 @@ export function renderUploadEditor({ engine, toast, onBack }) {
   let currentData = engine.getData();
   let isPreviewOpen = false;
   let zoomLevel = 1.0;
+
+  // Restore saved draft edits from local storage if available
+  const savedDraft = getUploadDraft();
+  if (savedDraft) {
+    if (typeof savedDraft.objective === 'string') {
+      currentData.objective = savedDraft.objective;
+      engine.updateObjective(savedDraft.objective);
+    }
+    if (typeof savedDraft.skillsText === 'string') {
+      currentData.skillsText = savedDraft.skillsText;
+      engine.updateSkillsText(savedDraft.skillsText);
+    }
+    if (typeof savedDraft.experienceText === 'string') {
+      currentData.experienceText = savedDraft.experienceText;
+      engine.updateExperienceText(savedDraft.experienceText);
+    }
+  }
+
+  let autoSaveTimer = null;
+  function persistDraft(showToast = false) {
+    saveUploadDraft({
+      fileName: currentData.fileName,
+      objective: currentData.objective,
+      skillsText: currentData.skillsText,
+      experienceText: currentData.experienceText,
+      updatedAt: Date.now(),
+    });
+    if (showToast && toast) {
+      toast.show('Draft saved to local storage.', 'success');
+    }
+  }
+
+  function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      persistDraft(false);
+    }, 400);
+  }
 
   function getGlobalHealth() {
     const objCap = engine.getSectionCapacity('objective');
@@ -104,6 +144,9 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         </div>
 
         <div class="topbar-actions">
+          <button type="button" class="btn btn--sm btn--white" id="btn-editor-save" title="Save draft to local storage">
+            Save Draft
+          </button>
           <button type="button" class="btn btn--sm btn--purple" id="btn-open-preview">
             Preview Resume
           </button>
@@ -213,6 +256,9 @@ export function renderUploadEditor({ engine, toast, onBack }) {
 
       <!-- Mobile Sticky Bottom Toolbar -->
       <div class="upload-editor-mobile-bar">
+        <button type="button" class="btn btn--white btn--block btn-mobile-save" id="btn-mobile-save">
+          Save Draft
+        </button>
         <button type="button" class="btn btn--purple btn--block btn-mobile-preview" id="btn-mobile-preview">
           Preview Resume
         </button>
@@ -313,6 +359,10 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       if (onBack) onBack();
     });
 
+    // Save draft buttons (desktop and mobile)
+    container.querySelector('#btn-editor-save')?.addEventListener('click', () => persistDraft(true));
+    container.querySelector('#btn-mobile-save')?.addEventListener('click', () => persistDraft(true));
+
     // Objective textarea
     const objTextarea = container.querySelector('#input-objective-text');
     if (objTextarea) {
@@ -322,6 +372,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         const countEl = container.querySelector('#obj-char-count');
         if (countEl) countEl.textContent = `${currentData.objective.length} chars`;
         updateGaugesLive();
+        scheduleAutoSave();
       });
     }
 
@@ -335,6 +386,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         const countEl = container.querySelector('#skills-line-count');
         if (countEl) countEl.textContent = `${lineCount} skill lines`;
         updateGaugesLive();
+        scheduleAutoSave();
       });
     }
 
@@ -348,6 +400,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         const countEl = container.querySelector('#exp-line-count');
         if (countEl) countEl.textContent = `${lineCount} lines`;
         updateGaugesLive();
+        scheduleAutoSave();
       });
     }
 
