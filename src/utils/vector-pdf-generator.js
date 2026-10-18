@@ -239,7 +239,7 @@ function generateAmityVectorPDF(data) {
   doc.setFont('times', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(0, 0, 0);
-  doc.text((p.fullName || 'Abhishek Tiwari').toUpperCase(), centerX, curY + 16, { align: 'center' });
+  doc.text((p.fullName || '').toUpperCase(), centerX, curY + 16, { align: 'center' });
 
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
@@ -321,7 +321,10 @@ function generateAmityVectorPDF(data) {
   if (data.academic && data.academic.length > 0) {
     renderSectionBar('ACADEMIC DETAILS');
     data.academic.forEach((item) => {
-      const clean = String(item).replace(/^[•\-\*]\s*/, '');
+      const text = typeof item === 'object' && item !== null
+        ? [item.institution, item.details].filter(Boolean).join(' | ')
+        : String(item);
+      const clean = text.replace(/^[•\-\*]\s*/, '');
       if (clean.trim()) {
         renderBullet([{ text: clean }], { justify: false });
       }
@@ -503,8 +506,10 @@ function generateAmityVectorPDF(data) {
     doc.setFont('times', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(0, 0, 0);
-    const candName = p.fullName || 'Abhishek Tiwari';
-    doc.text(candName, X_LEFT + CONTENT_WIDTH, footerStartY + 6, { align: 'right' });
+    const candName = p.fullName || '';
+    if (candName) {
+      doc.text(candName, X_LEFT + CONTENT_WIDTH, footerStartY + 6, { align: 'right' });
+    }
   }
 
   return doc;
@@ -688,9 +693,11 @@ function generateJakesVectorPDF(data) {
   doc.setFont('times', 'bold');
   doc.setFontSize(20);
   doc.setTextColor(0, 0, 0);
-  const candName = p.fullName || 'Abhishek Tiwari';
-  doc.text(candName, PAGE_WIDTH / 2, curY, { align: 'center' });
-  curY += 12;
+  const candName = p.fullName || '';
+  if (candName) {
+    doc.text(candName, PAGE_WIDTH / 2, curY, { align: 'center' });
+    curY += 12;
+  }
 
   // Contact line: Address | Phone | Email
   const contactParts = [];

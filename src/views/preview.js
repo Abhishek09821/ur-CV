@@ -63,7 +63,7 @@ export function buildAmityResumeHTML(data) {
         </div>
 
         <div class="amity-header-center">
-          <h1 class="amity-candidate-name">${esc(p.fullName) || 'Abhishek Tiwari'}</h1>
+          <h1 class="amity-candidate-name">${esc(p.fullName) || ''}</h1>
           <div class="amity-candidate-contact-line"><strong>Address:</strong> ${esc(p.address || '')}</div>
           <div class="amity-candidate-contact-line"><strong>Phone:</strong> ${esc(p.phone || '')}</div>
           <div class="amity-candidate-contact-line">
@@ -101,7 +101,12 @@ export function buildAmityResumeHTML(data) {
           <div class="amity-bar">ACADEMIC DETAILS</div>
           <div class="amity-content">
             <ul class="amity-bullet-list">
-              ${academic.map((item) => `<li>${esc(String(item).replace(/^[•\-\*]\s*/, ''))}</li>`).join('')}
+              ${academic.map((item) => {
+                const text = typeof item === 'object' && item !== null
+                  ? [item.institution, item.details].filter(Boolean).join(' | ')
+                  : String(item);
+                return `<li>${esc(text.replace(/^[•\-\*]\s*/, ''))}</li>`;
+              }).join('')}
             </ul>
           </div>
         </section>
@@ -222,7 +227,7 @@ export function buildAmityResumeHTML(data) {
               </div>
               <div class="amity-decl-center-bar"></div>
               <div class="amity-decl-right">
-                <strong>${esc(p.fullName || 'Abhishek Tiwari')}</strong>
+                <strong>${esc(p.fullName || '')}</strong>
               </div>
             </div>
           </div>

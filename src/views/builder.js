@@ -7,6 +7,7 @@ import { renderPreview } from './preview.js';
 import { parseEducationItem } from './jakes-preview.js';
 import { openObjectiveModal } from '../components/objective-modal.js';
 import { openPhotoCompressorModal } from '../components/photo-compressor-modal.js';
+import { openBulletModal } from '../components/bullet-modal.js';
 import { downloadVectorPDF } from '../utils/vector-pdf-generator.js';
 
 const AMITY_SECTIONS = [
@@ -434,6 +435,24 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       });
     });
 
+    // Generate Bullets for Experience
+    container.querySelectorAll('.exp-generate-bullets').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const expIdx = parseInt(btn.dataset.expIndex, 10);
+        const data = store.getData();
+        const exp = data.experience[expIdx];
+        if (!exp) return;
+        openBulletModal({
+          mode: 'experience',
+          entryData: exp,
+          entryIndex: expIdx,
+          store,
+          toast,
+          onApply: () => buildUI(),
+        });
+      });
+    });
+
     // ========== PROJECTS FORM ==========
     container.querySelector('#btn-add-project')?.addEventListener('click', () => {
       store.addProject();
@@ -479,6 +498,24 @@ export function renderBuilder({ store, toast, onSave, onBack }) {
       input.addEventListener('input', () => {
         store.updateProjectBullet(projIdx, bulletIdx, input.value);
         updatePreviewOnly();
+      });
+    });
+
+    // Generate Bullets for Projects
+    container.querySelectorAll('.proj-generate-bullets').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const projIdx = parseInt(btn.dataset.projIndex, 10);
+        const data = store.getData();
+        const proj = data.projects[projIdx];
+        if (!proj) return;
+        openBulletModal({
+          mode: 'project',
+          entryData: proj,
+          entryIndex: projIdx,
+          store,
+          toast,
+          onApply: () => buildUI(),
+        });
       });
     });
 
@@ -838,7 +875,10 @@ function renderExperienceForm(data, isActive, isJakes) {
         <div class="entry-card mb-md">
           <div class="entry-card-header">
             <span class="entry-card-title">Experience #${i + 1}</span>
-            <button class="delete-btn exp-delete" data-index="${i}" title="Remove entry">&times;</button>
+            <div class="flex gap-xs items-center">
+              <button class="btn btn--sm btn--purple exp-generate-bullets" data-exp-index="${i}" title="AI-generate bullet points for this experience">Generate Bullets</button>
+              <button class="delete-btn exp-delete" data-index="${i}" title="Remove entry">&times;</button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -865,7 +905,9 @@ function renderExperienceForm(data, isActive, isJakes) {
                 ${exp.bullets.length > 1 ? `<button class="btn btn--sm btn--red exp-remove-bullet" data-exp-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">&times;</button>` : ''}
               </div>
             `).join('')}
-            <button class="add-entry-btn exp-add-bullet" data-exp-index="${i}">+ Add Bullet</button>
+            <div class="flex gap-xs">
+              <button class="add-entry-btn exp-add-bullet" data-exp-index="${i}">+ Add Bullet</button>
+            </div>
           </div>
         </div>
       `).join('')}
@@ -886,7 +928,10 @@ function renderProjectsForm(data, isActive, isJakes) {
         <div class="entry-card mb-md">
           <div class="entry-card-header">
             <span class="entry-card-title">Project #${i + 1}</span>
-            <button class="delete-btn proj-delete" data-index="${i}" title="Remove entry">&times;</button>
+            <div class="flex gap-xs items-center">
+              <button class="btn btn--sm btn--purple proj-generate-bullets" data-proj-index="${i}" title="AI-generate bullet points for this project">Generate Bullets</button>
+              <button class="delete-btn proj-delete" data-index="${i}" title="Remove entry">&times;</button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -908,7 +953,9 @@ function renderProjectsForm(data, isActive, isJakes) {
                 ${proj.bullets.length > 1 ? `<button class="btn btn--sm btn--red proj-remove-bullet" data-proj-index="${i}" data-bullet-index="${bi}" style="padding:4px 8px;">&times;</button>` : ''}
               </div>
             `).join('')}
-            <button class="add-entry-btn proj-add-bullet" data-proj-index="${i}">+ Add Bullet</button>
+            <div class="flex gap-xs">
+              <button class="add-entry-btn proj-add-bullet" data-proj-index="${i}">+ Add Bullet</button>
+            </div>
           </div>
         </div>
       `).join('')}

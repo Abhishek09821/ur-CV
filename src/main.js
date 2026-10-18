@@ -12,6 +12,7 @@ import { renderFooter } from './components/footer.js';
 import { ToastManager } from './components/toast.js';
 import { openTemplateModal } from './components/template-modal.js';
 import { openPreviewModal } from './components/preview-modal.js';
+import { openUploadModal } from './components/upload-modal.js';
 import { AMITY_DEFAULT_PHOTO_DATA_URL } from './assets/amity-assets.js';
 
 class App {
@@ -123,6 +124,7 @@ class App {
     // Header
     const header = renderHeader({
       currentView: this.currentView,
+      template: this.store.getTemplate ? this.store.getTemplate() : 'amity',
       onHome: () => this.navigateTo('landing'),
       onBack: () => {
         // If there is history, navigate back; otherwise go to landing
@@ -131,6 +133,24 @@ class App {
         } else {
           this.navigateTo('landing');
         }
+      },
+      onUpload: () => {
+        openUploadModal({
+          store: this.store,
+          toast: this.toast,
+          onComplete: () => {
+            this.render();
+          },
+        });
+      },
+      onSwitchTemplate: () => {
+        openTemplateModal({
+          store: this.store,
+          toast: this.toast,
+          onSelect: () => {
+            this.render();
+          },
+        });
       },
       onSave: () => this.saveDraft(),
       onDelete: () => {
@@ -164,6 +184,15 @@ class App {
             store: this.store,
             toast: this.toast,
             onSelect: () => {
+              this.navigateTo('builder');
+            },
+          });
+        },
+        onUploadMode: () => {
+          openUploadModal({
+            store: this.store,
+            toast: this.toast,
+            onComplete: () => {
               this.navigateTo('builder');
             },
           });

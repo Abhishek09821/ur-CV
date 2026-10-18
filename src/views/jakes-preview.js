@@ -65,10 +65,19 @@ export function parseEducationItem(item) {
 
   // Pattern 6: Starts with BTech / B.Tech
   if (/^B\.?Tech/i.test(str)) {
-    return {
-      institution: 'Amity University Madhya Pradesh',
-      details: str.replace(/^B\.?Tech[-–\s]*/i, 'B.Tech in Computer Science Engineering | '),
-    };
+    if (/amity/i.test(str)) {
+      return {
+        institution: 'Amity University Madhya Pradesh',
+        details: str.replace(/^B\.?Tech[-–\s]*/i, 'B.Tech in Computer Science Engineering | '),
+      };
+    }
+    if (str.includes('|')) {
+      const parts = str.split('|').map((p) => p.trim());
+      const inst = parts.find((p) => /university|college|institute|iit|nit|dtu|bits|school/i.test(p)) || parts[1] || parts[0];
+      const rest = parts.filter((p) => p !== inst).join(' | ');
+      return { institution: inst, details: rest };
+    }
+    return { institution: str, details: '' };
   }
 
   return { institution: str, details: '' };
@@ -89,7 +98,7 @@ export function buildJakesResumeHTML(data) {
     <div class="jakes-resume-container">
       <!-- ================= 1. HEADER ================= -->
               <header class="jakes-header">
-                <h1 class="jakes-candidate-name">${esc(p.fullName) || 'Abhishek Tiwari'}</h1>
+                <h1 class="jakes-candidate-name">${esc(p.fullName) || ''}</h1>
                 <div class="jakes-contact-line">
                   ${p.address ? `<span>${esc(p.address)}</span>` : ''}
                   ${p.phone ? `<span>${p.address ? ' | ' : ''}${esc(p.phone)}</span>` : ''}

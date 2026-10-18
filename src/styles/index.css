@@ -3534,4 +3534,349 @@ body {
   }
 }
 
+/* ========================================
+   UPLOAD RESUME MODAL
+   ======================================== */
+
+.upload-modal-overlay {
+  z-index: 10001;
+}
+
+.upload-modal {
+  max-width: 620px;
+  width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.upload-modal-body {
+  padding: var(--space-lg);
+}
+
+/* Steps */
+.upload-step {
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 2px dashed var(--border-color);
+}
+
+.upload-step:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.upload-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.upload-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-accent-purple);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.9rem;
+  border: 3px solid var(--border-color);
+  box-shadow: 2px 2px 0 var(--border-color);
+}
+
+.upload-step-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+/* Template Selection Grid */
+.upload-tpl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.upload-tpl-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-secondary);
+}
+
+.upload-tpl-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-tpl-card.active {
+  background: var(--bg-accent-yellow);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-color);
+}
+
+.upload-tpl-icon {
+  font-size: 1.6rem;
+}
+
+.upload-tpl-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-tpl-info strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.upload-tpl-check {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  width: 24px;
+  text-align: center;
+}
+
+/* Drop Zone */
+.upload-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+  border: 3px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.upload-drop-zone:hover,
+.upload-drop-zone.drag-over {
+  background: var(--bg-accent-blue);
+  border-style: solid;
+  transform: scale(1.01);
+}
+
+.upload-drop-icon {
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.upload-drop-zone.drag-over .upload-drop-icon {
+  color: var(--text-primary);
+}
+
+.upload-drop-text {
+  font-size: 0.95rem;
+  margin-bottom: var(--space-xs);
+}
+
+/* File Info */
+.upload-file-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-accent-green);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-file-icon {
+  font-size: 1.8rem;
+}
+
+.upload-file-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-file-details strong {
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+/* Info Banner */
+.upload-info-banner {
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+
+.upload-info-banner strong {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.upload-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.upload-info-list li {
+  padding: 2px 0;
+  padding-left: 16px;
+  position: relative;
+  color: var(--text-secondary);
+}
+
+.upload-info-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  color: var(--bg-accent-green);
+}
+
+/* Spinner */
+.upload-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--text-inverse);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: upload-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes upload-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   BULLET POINT GENERATOR MODAL
+   ======================================== */
+
+.bullet-modal-overlay {
+  z-index: 10001;
+}
+
+.bullet-modal {
+  max-width: 720px;
+  width: 94vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.bullet-modal-body {
+  padding: var(--space-lg);
+}
+
+/* Context Card */
+.bullet-context-card {
+  padding: var(--space-md);
+  background: var(--bg-accent-yellow);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.bullet-context-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.bullet-context-value {
+  font-size: 0.95rem;
+}
+
+/* Suggestions Header */
+.bullet-suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+/* Suggestions Grid */
+.bullet-suggestions-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+.bullet-suggestion-card {
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.bullet-suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.bullet-suggestion-textarea {
+  font-size: 0.85rem;
+  min-height: 60px;
+}
+
+.bullet-suggestion-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+/* ========================================
+   LANDING PAGE — DUAL CARD LAYOUT
+   ======================================== */
+
+.card--blue {
+  background: var(--bg-accent-blue);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 600px) {
+  .upload-tpl-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-modal {
+    max-height: 95vh;
+  }
+
+  .bullet-modal {
+    max-height: 95vh;
+  }
+
+  .bullet-suggestions-grid {
+    grid-template-columns: 1fr;
+  }
+}
 

@@ -280,7 +280,7 @@ export class ResumeStore {
     return JSON.parse(JSON.stringify(this.data));
   }
 
-  loadData(data) {
+  loadData(data, replace = false) {
     if (data && typeof data === 'object') {
       if (data.academic && !Array.isArray(data.academic)) {
         delete data.academic;
@@ -288,7 +288,37 @@ export class ResumeStore {
       if (data.skills && !Array.isArray(data.skills)) {
         delete data.skills;
       }
-      this.data = { ...JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME)), ...data };
+      if (replace) {
+        // For parsed resume uploads: start from clean empty structure
+        // Populate all extracted fields and leave unprovided fields blank
+        const template = data.template || 'amity';
+        this.data = {
+          template,
+          personal: {
+            fullName: data.personal?.fullName || '',
+            address: data.personal?.address || '',
+            phone: data.personal?.phone || '',
+            email: data.personal?.email || '',
+            photo: data.personal?.photo || null,
+          },
+          objective: data.objective || '',
+          academic: Array.isArray(data.academic) ? data.academic : [],
+          experience: Array.isArray(data.experience) ? data.experience : [],
+          projects: Array.isArray(data.projects) ? data.projects : [],
+          skills: Array.isArray(data.skills) ? data.skills : [],
+          awards: Array.isArray(data.awards) ? data.awards : [],
+          links: Array.isArray(data.links) ? data.links : [],
+          leadership: Array.isArray(data.leadership) ? data.leadership : [],
+          achievements: Array.isArray(data.achievements) ? data.achievements : [],
+          declaration: data.declaration || (template === 'jakes' ? {} : {
+            text: 'I hereby declare that all the above information is true to the best of my knowledge and belief.',
+            date: '',
+            place: '',
+          }),
+        };
+      } else {
+        this.data = { ...JSON.parse(JSON.stringify(UNIVERSAL_DEFAULT_RESUME)), ...data };
+      }
       this.notify();
     }
   }
