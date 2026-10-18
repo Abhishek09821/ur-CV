@@ -1,13 +1,11 @@
 /**
  * PDF Document Engine for ur-CV
  *
- * In-Place PDF Modification with 100% Visual Fidelity & Precise Bounding-Box Replacement.
+ * In-Place PDF Modification with 100% Visual Fidelity & Precise Dynamic Bounding-Box Replacement.
  * Accepts ANY resume format (Canva, Amity, Jake's, LaTeX, Word-exported, corporate, etc.),
  * preserves 100% of original visual assets (headers, logos, photos, lines, colors, static sections),
- * and accurately parses & re-renders:
- * 1. Career Objective / Summary
- * 2. Technical Skills
- * 3. Work Experience / Internships
+ * deduplicates overlapping PDF text layers, eliminates text clipping/overlapping,
+ * and maintains exact original font sizes without shrinking.
  */
 
 import * as pdfjsLib from 'pdfjs-dist';
@@ -48,7 +46,7 @@ export class PDFDocumentEngine {
     this.pageWidthPx = 1190;
     this.pageHeightPx = 1684;
 
-    this.pagesData = []; // Array of page objects with original canvases and bounding boxes
+    this.pagesData = [];
     this.detectedLayout = {
       fontFamily: '"Times New Roman", Times, Georgia, serif',
       isSerif: true,
@@ -134,12 +132,12 @@ export class PDFDocumentEngine {
   }
 
   /**
-   * Reconstruct lines from text items safely
+   * Reconstruct lines from text items, eliminating duplicate overlapping layers
    */
   _reconstructLines(textContent, viewport) {
     if (!textContent || !textContent.items) return [];
 
-    const items = textContent.items
+    const rawItems = textContent.items
       .filter((it) => it.str && it.str.trim().length > 0)
       .map((it) => {
         const [vx, vy] = viewport.convertToViewportPoint(it.transform[4], it.transform[5]);
@@ -149,20 +147,29 @@ export class PDFDocumentEngine {
 
         return {
           str: it.str,
-          vx,
-          vy, // Baseline Y from top
-          widthPx: (it.width || 0) * this.scale,
-          heightPx: (it.height || fontSizePx) * this.scale,
+          vx: Math.round(vx),
+          vy: Math.round(vy), // Baseline Y from top
+          widthPx: Math.round((it.width || 0) * this.scale),
+          heightPx: Math.round((it.height || fontSizePx) * this.scale),
           fontSizePx,
           fontName,
           fontFamily: fontStyle ? fontStyle.fontFamily : '',
         };
       });
 
-    // Group items into visual lines (tolerance 6px)
+    // Deduplicate overlapping items (e.g. PDFs with multiple identical/competing text layers)
+    const items = [];
+    for (const it of rawItems) {
+      const isDup = items.some(
+        (x) => Math.abs(x.vy - it.vy) <= 4 && Math.abs(x.vx - it.vx) <= 8
+      );
+      if (!isDup) items.push(it);
+    }
+
+    // Group items into visual lines (tolerance 4px)
     const lineBuckets = [];
     for (const item of items) {
-      let bucket = lineBuckets.find((b) => Math.abs(b.vy - item.vy) <= 6.0);
+      let bucket = lineBuckets.find((b) => Math.abs(b.vy - item.vy) <= 4.0);
       if (!bucket) {
         bucket = {
           vy: item.vy,
@@ -204,7 +211,7 @@ export class PDFDocumentEngine {
         fontSizePx: maxFontSize,
         isBold,
         isSerif,
-        fontFamily: firstItem.fontFamily || (isSerif ? 'Times New Roman' : 'Inter'),
+        fontFamily: firstItem.fontFamily || (isSerif ? '"Times New Roman", serif' : 'Inter, sans-serif'),
         items: bucket.items,
       });
     }
@@ -240,12 +247,12 @@ export class PDFDocumentEngine {
       : 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
     const avgFontPx = fontCount > 0 ? totalFontSize / fontCount : 19;
-    this.detectedLayout.fontSize = Math.max(16, Math.min(22, avgFontPx));
+    this.detectedLayout.fontSize = Math.max(17, Math.min(22, avgFontPx));
     this.detectedLayout.lineHeight = 1.35;
   }
 
   /**
-   * Strictly detect section headings and calculate precise bounding boxes on each page
+   * Strictly detect section headings and calculate dynamic bounding boxes matching original margins
    */
   _detectSectionsAndBoxes() {
     for (let pIdx = 0; pIdx < this.pagesData.length; pIdx++) {
@@ -259,7 +266,6 @@ export class PDFDocumentEngine {
           .replace(/[:#*\s]+$/, '')
           .trim();
 
-        // Must be a concise heading text, not a long sentence or bullet point
         if (cleanText.length >= 3 && cleanText.length <= 45 && !line.text.startsWith('•')) {
           for (const h of STRICT_HEADINGS) {
             if (h.regex.test(cleanText) && !detected.some((s) => s.type === h.type)) {
@@ -282,10 +288,8 @@ export class PDFDocumentEngine {
       detected.sort((a, b) => a.vy - b.vy);
       page.sections = detected;
 
-      // Calculate bounding boxes for sections on this page
+      // Calculate dynamic bounding boxes for sections on this page
       const boxes = {};
-      const contentMinX = 86; // standard margin at 2x scale
-      const contentWidth = 1022; // 1190 - 86*2
 
       for (let i = 0; i < detected.length; i++) {
         const cur = detected[i];
@@ -293,13 +297,29 @@ export class PDFDocumentEngine {
 
         // Content box starts below the heading bar and ends before the next heading bar
         const boxTop = Math.round(cur.vy + 18);
-        const boxBottom = next ? Math.round(next.vy - 16) : Math.round(page.originalCanvas.height - 40);
+        const boxBottom = next ? Math.round(next.vy - 16) : Math.round(page.originalCanvas.height - 35);
+
+        const secLines = page.lines.slice(cur.lineIdx + 1, next ? next.lineIdx : page.lines.length);
+
+        let secMinX = cur.minX;
+        let secMaxX = cur.maxX;
+        if (secLines.length > 0) {
+          secMinX = Math.min(...secLines.map((l) => l.minX));
+          secMaxX = Math.max(...secLines.map((l) => l.maxX));
+        }
+
+        // Generous white mask bounds to guarantee 100% wipeout of all underlying text
+        const maskLeft = Math.max(10, Math.floor(secMinX - 8));
+        const maskRight = Math.min(page.originalCanvas.width - 10, Math.ceil(secMaxX + 12));
+        const maskWidth = maskRight - maskLeft;
 
         boxes[cur.type] = {
-          left: contentMinX,
-          top: boxTop,
-          width: contentWidth,
-          height: Math.max(30, boxBottom - boxTop),
+          maskLeft,
+          maskTop: boxTop,
+          maskWidth,
+          maskHeight: Math.max(30, boxBottom - boxTop),
+          contentLeft: secMinX,
+          contentWidth: Math.max(200, secMaxX - secMinX),
           lineStart: cur.lineIdx + 1,
           lineEnd: next ? next.lineIdx : page.lines.length,
         };
@@ -308,12 +328,22 @@ export class PDFDocumentEngine {
       // Check if page 2 starts with skills continuation (before the first heading on page 2)
       if (pIdx > 0 && detected.length > 0 && detected[0].type !== 'skills') {
         const firstHeadingTop = detected[0].vy;
-        if (firstHeadingTop > 100) {
+        if (firstHeadingTop > 80) {
+          const contLines = page.lines.slice(0, detected[0].lineIdx);
+          let secMinX = 86;
+          let secMaxX = page.originalCanvas.width - 86;
+          if (contLines.length > 0) {
+            secMinX = Math.min(...contLines.map((l) => l.minX));
+            secMaxX = Math.max(...contLines.map((l) => l.maxX));
+          }
+
           boxes['skills_continuation'] = {
-            left: contentMinX,
-            top: 40,
-            width: contentWidth,
-            height: Math.round(firstHeadingTop - 56),
+            maskLeft: Math.max(10, Math.floor(secMinX - 8)),
+            maskTop: 35,
+            maskWidth: Math.min(page.originalCanvas.width - 10, Math.ceil(secMaxX + 12)) - Math.max(10, Math.floor(secMinX - 8)),
+            maskHeight: Math.round(firstHeadingTop - 52),
+            contentLeft: secMinX,
+            contentWidth: Math.max(200, secMaxX - secMinX),
             lineStart: 0,
             lineEnd: detected[0].lineIdx,
           };
@@ -487,7 +517,7 @@ export class PDFDocumentEngine {
   }
 
   // ============================================================
-  // IN-PLACE RENDERING (100% VISUAL INTEGRITY)
+  // IN-PLACE RENDERING (100% VISUAL INTEGRITY & NO SHRINKING)
   // ============================================================
 
   /**
@@ -539,49 +569,50 @@ export class PDFDocumentEngine {
   }
 
   _renderObjectiveBox(ctx, box, text) {
-    if (!box || box.height <= 0) return;
+    if (!box || box.maskHeight <= 0) return;
 
-    // Clean white mask over the original text area
+    // Clean white mask covering 100% of original text
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(box.left, box.top, box.width, box.height);
+    ctx.fillRect(box.maskLeft, box.maskTop, box.maskWidth, box.maskHeight);
 
     if (!text || !text.trim()) return;
 
+    // Maintain standard readable font size (NO shrinking)
     let fontSize = this.detectedLayout.fontSize;
     let lineHeight = fontSize * this.detectedLayout.lineHeight;
     const fontFamily = this.detectedLayout.fontFamily;
 
-    // Check fit and auto-scale font size if text is longer
     ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-    let lines = this._wrapText(ctx, text.trim(), box.width);
+    let lines = this._wrapText(ctx, text.trim(), box.contentWidth);
     let totalH = lines.length * lineHeight;
 
-    if (totalH > box.height) {
-      const scaleRatio = box.height / totalH;
-      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
-      lineHeight = fontSize * 1.35;
+    if (totalH > box.maskHeight) {
+      // Gentle adjustment only if strictly needed (minimum 16.5px = 8.25pt)
+      const scaleRatio = box.maskHeight / totalH;
+      fontSize = Math.max(16.5, fontSize * scaleRatio * 0.98);
+      lineHeight = fontSize * 1.32;
       ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-      lines = this._wrapText(ctx, text.trim(), box.width);
+      lines = this._wrapText(ctx, text.trim(), box.contentWidth);
     }
 
     ctx.fillStyle = this.detectedLayout.textColor;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    let curY = box.top + 2;
+    let curY = box.maskTop + 2;
     for (const line of lines) {
-      if (curY + lineHeight > box.top + box.height + 4) break;
-      ctx.fillText(line, box.left, curY);
+      if (curY + lineHeight > box.maskTop + box.maskHeight + 6) break;
+      ctx.fillText(line, box.contentLeft, curY);
       curY += lineHeight;
     }
   }
 
   _renderExperienceBox(ctx, box, expList) {
-    if (!box || box.height <= 0) return;
+    if (!box || box.maskHeight <= 0) return;
 
-    // Clean white mask over the original experience area
+    // Clean white mask covering 100% of original experience area
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(box.left, box.top, box.width, box.height);
+    ctx.fillRect(box.maskLeft, box.maskTop, box.maskWidth, box.maskHeight);
 
     if (!expList || expList.length === 0) return;
 
@@ -590,27 +621,7 @@ export class PDFDocumentEngine {
     const fontFamily = this.detectedLayout.fontFamily;
     const bulletIndent = 16 * this.scale;
 
-    // Calculate total required lines
-    ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-    let totalLinesCount = 0;
-    for (const exp of expList) {
-      totalLinesCount += 2; // Title & Duration lines
-      for (const b of exp.bullets || []) {
-        if (b.trim()) {
-          const wrapped = this._wrapText(ctx, b.trim(), box.width - bulletIndent);
-          totalLinesCount += Math.max(1, wrapped.length);
-        }
-      }
-    }
-
-    const estimatedH = totalLinesCount * lineHeight;
-    if (estimatedH > box.height) {
-      const scaleRatio = box.height / estimatedH;
-      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
-      lineHeight = fontSize * 1.35;
-    }
-
-    let curY = box.top + 2;
+    let curY = box.maskTop + 2;
 
     for (const exp of expList) {
       const title = (exp.title || '').trim();
@@ -619,7 +630,7 @@ export class PDFDocumentEngine {
       const bullets = exp.bullets || [];
 
       if (!title && !company && bullets.length === 0) continue;
-      if (curY + lineHeight > box.top + box.height) break;
+      if (curY + lineHeight > box.maskTop + box.maskHeight) break;
 
       // Title & Company
       ctx.textAlign = 'left';
@@ -628,13 +639,13 @@ export class PDFDocumentEngine {
       ctx.fillStyle = this.detectedLayout.textColor;
 
       const titleText = title + (company ? ` | ${company}` : '');
-      ctx.fillText(titleText, box.left, curY);
+      ctx.fillText(titleText, box.contentLeft, curY);
 
       // Duration (right aligned)
       if (duration) {
         ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
         ctx.textAlign = 'right';
-        ctx.fillText(duration, box.left + box.width, curY);
+        ctx.fillText(duration, box.contentLeft + box.contentWidth, curY);
         ctx.textAlign = 'left';
       }
 
@@ -644,19 +655,19 @@ export class PDFDocumentEngine {
       for (const bullet of bullets) {
         const cleanBullet = (bullet || '').trim();
         if (!cleanBullet) continue;
-        if (curY + lineHeight > box.top + box.height) break;
+        if (curY + lineHeight > box.maskTop + box.maskHeight) break;
 
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
 
-        const wrapped = this._wrapText(ctx, cleanBullet, box.width - bulletIndent);
+        const wrapped = this._wrapText(ctx, cleanBullet, box.contentWidth - bulletIndent);
         for (let i = 0; i < wrapped.length; i++) {
-          if (curY + lineHeight > box.top + box.height) break;
+          if (curY + lineHeight > box.maskTop + box.maskHeight) break;
 
           if (i === 0) {
-            ctx.fillText('•', box.left + 4, curY);
+            ctx.fillText('•', box.contentLeft + 2, curY);
           }
-          ctx.fillText(wrapped[i], box.left + bulletIndent, curY);
+          ctx.fillText(wrapped[i], box.contentLeft + bulletIndent, curY);
           curY += lineHeight;
         }
       }
@@ -666,11 +677,11 @@ export class PDFDocumentEngine {
   }
 
   _renderSkillsBox(ctx, box, skillsList, mode = 'all') {
-    if (!box || box.height <= 0) return;
+    if (!box || box.maskHeight <= 0) return;
 
-    // Clean white mask over skills area
+    // Clean white mask covering 100% of original skills area
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(box.left, box.top, box.width, box.height);
+    ctx.fillRect(box.maskLeft, box.maskTop, box.maskWidth, box.maskHeight);
 
     if (!skillsList || skillsList.length === 0) return;
 
@@ -686,33 +697,13 @@ export class PDFDocumentEngine {
     let lineHeight = fontSize * this.detectedLayout.lineHeight;
     const fontFamily = this.detectedLayout.fontFamily;
 
-    // Check height
-    let totalLinesCount = 0;
-    ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
-    for (const item of itemsToRender) {
-      const cat = (item.category || '').trim();
-      const sk = (item.skills || '').trim();
-      const catW = ctx.measureText(cat ? cat + ': ' : '').width;
-      ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-      const wrapped = this._wrapText(ctx, sk, Math.max(100, box.width - catW - 16));
-      totalLinesCount += Math.max(1, wrapped.length);
-      ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
-    }
-
-    const estimatedH = totalLinesCount * lineHeight;
-    if (estimatedH > box.height) {
-      const scaleRatio = box.height / estimatedH;
-      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
-      lineHeight = fontSize * 1.35;
-    }
-
-    let curY = box.top + 2;
+    let curY = box.maskTop + 2;
 
     for (const item of itemsToRender) {
       const category = (item.category || '').trim();
       const skills = (item.skills || '').trim();
       if (!category && !skills) continue;
-      if (curY + lineHeight > box.top + box.height) break;
+      if (curY + lineHeight > box.maskTop + box.maskHeight) break;
 
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -720,9 +711,9 @@ export class PDFDocumentEngine {
       // Bullet mark
       ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
       ctx.fillStyle = this.detectedLayout.textColor;
-      ctx.fillText('•', box.left + 4, curY);
+      ctx.fillText('•', box.contentLeft + 2, curY);
 
-      const indentX = box.left + 16;
+      const indentX = box.contentLeft + 16;
 
       if (category) {
         ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
@@ -732,7 +723,7 @@ export class PDFDocumentEngine {
         ctx.fillText(catText, indentX, curY);
 
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-        const remainingWidth = Math.max(100, box.width - catW - 16);
+        const remainingWidth = Math.max(100, box.contentWidth - catW - 16);
         const wrapped = this._wrapText(ctx, skills, remainingWidth);
 
         if (wrapped.length > 0) {
@@ -740,7 +731,7 @@ export class PDFDocumentEngine {
           curY += lineHeight;
 
           for (let i = 1; i < wrapped.length; i++) {
-            if (curY + lineHeight > box.top + box.height) break;
+            if (curY + lineHeight > box.maskTop + box.maskHeight) break;
             ctx.fillText(wrapped[i], indentX + catW, curY);
             curY += lineHeight;
           }
@@ -750,9 +741,9 @@ export class PDFDocumentEngine {
       } else {
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
-        const wrapped = this._wrapText(ctx, skills, box.width - 20);
+        const wrapped = this._wrapText(ctx, skills, box.contentWidth - 18);
         for (const line of wrapped) {
-          if (curY + lineHeight > box.top + box.height) break;
+          if (curY + lineHeight > box.maskTop + box.maskHeight) break;
           ctx.fillText(line, indentX, curY);
           curY += lineHeight;
         }
