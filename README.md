@@ -85,5 +85,5 @@ npm run build
 ## License & Author
 
 - **Live Application**: [https://ur-cv.netlify.app/](https://ur-cv.netlify.app/)
-- **Author**: [Abhishek Tiwari](https://www.linkedin.com/in/abhishek-tiwari-3a3594300) &middot; [GitHub](https://github.com/Abhishek09821)
+- **Author**: [Abhishek Tiwari - LinkedIn](https://www.linkedin.com/in/abhishek-tiwari-3a3594300) &middot; [GitHub](https://github.com/Abhishek09821)
 - **License**: MIT
