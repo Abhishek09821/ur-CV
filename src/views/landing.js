@@ -38,17 +38,16 @@ export function renderLanding({ onSelectMode, onUploadMode }) {
           </div>
         </div>
 
-        <!-- Card 2: Upload & Edit -->
+        <!-- Card 2: Upload & Edit Any Resume -->
         <div class="card card--blue mode-card" data-mode="upload" id="mode-upload-resume">
-          <div class="mode-card-kicker">UPLOAD & AUTO-FILL // AI-ASSISTED</div>
-          <div class="mode-title">Upload Your Resume</div>
+          <div class="mode-card-kicker">EDIT ANY RESUME // FORMAT PRESERVED</div>
+          <div class="mode-title">Upload Any Resume</div>
           <p class="mode-desc">
-            Upload your existing resume (PDF/TXT) and auto-fill all fields into Amity or Jake's format.
-            AI-powered bullet generation for projects &amp; experience.
+            Upload your resume in any format, design, or template. We preserve your exact header, colors, and layout while letting you quickly edit Technical Skills, Objective, and Experience on mobile.
           </p>
           <div class="mt-md">
             <span class="btn btn--green btn--block" style="pointer-events:none;font-size:0.95rem;padding:var(--space-sm) var(--space-md);">
-              Upload &amp; Convert &rarr;
+              Upload &amp; Edit Resume &rarr;
             </span>
           </div>
         </div>

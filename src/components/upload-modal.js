@@ -1,20 +1,15 @@
 /**
- * Resume Upload Modal
+ * Rebuilt Resume Upload Modal
  *
- * Provides a full-featured modal for uploading an existing resume:
- * 1. User uploads a PDF or text file
- * 2. User chooses target template (Amity or Jake's)
- * 3. Resume is parsed and auto-fills all form fields
- * 4. Preview updates with the parsed data
- *
- * For users who want to start from scratch, they use the existing
- * "Build Your Resume" flow with default template data.
+ * Accepts EVERY type of resume format and template (PDF).
+ * Preserves 100% of the original header, layout, fonts, colors, and static sections.
+ * Automatically analyzes the document and opens the Quick Editor for
+ * Technical Skills, Career Objective, and Work Experience.
  */
 
-import { parseUploadedResume } from '../utils/resume-parser.js';
+import { PDFDocumentEngine } from '../utils/pdf-document-engine.js';
 
-export function openUploadModal({ store, toast, onComplete }) {
-  // Remove existing modal if already open
+export function openUploadModal({ toast, onComplete }) {
   const existing = document.getElementById('upload-resume-modal-overlay');
   if (existing) existing.remove();
 
@@ -22,67 +17,35 @@ export function openUploadModal({ store, toast, onComplete }) {
   overlay.className = 'modal-overlay upload-modal-overlay';
   overlay.id = 'upload-resume-modal-overlay';
 
-  let selectedTemplate = 'amity';
   let uploadedFile = null;
   let isParsing = false;
+  let statusMessage = '';
 
-  overlay.innerHTML = buildModalHTML(selectedTemplate, uploadedFile, isParsing);
+  overlay.innerHTML = buildModalHTML(uploadedFile, isParsing, statusMessage);
   document.body.appendChild(overlay);
 
   function refresh() {
-    overlay.innerHTML = buildModalHTML(selectedTemplate, uploadedFile, isParsing);
+    overlay.innerHTML = buildModalHTML(uploadedFile, isParsing, statusMessage);
     attachListeners();
   }
 
   function attachListeners() {
-    // Close
+    // Close modal
     overlay.querySelector('#btn-upload-modal-close')?.addEventListener('click', closeModal);
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-
-    // Template selection
-    overlay.querySelectorAll('.upload-tpl-card').forEach((card) => {
-      card.addEventListener('click', () => {
-        selectedTemplate = card.dataset.tpl;
-        refresh();
-      });
+      if (e.target === overlay && !isParsing) closeModal();
     });
 
     // File input
     const fileInput = overlay.querySelector('#resume-file-input');
     if (fileInput) {
-      fileInput.addEventListener('change', (e) => {
+      fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
-          // Validate file
-          const allowedTypes = ['application/pdf', 'text/plain'];
-          const allowedExts = ['.pdf', '.txt'];
-          const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-
-          if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
-            toast.show('Please upload a PDF or TXT file.', 'error');
-            fileInput.value = '';
-            return;
-          }
-
-          if (file.size > 10 * 1024 * 1024) {
-            toast.show('File too large. Maximum 10MB allowed.', 'error');
-            fileInput.value = '';
-            return;
-          }
-
-          uploadedFile = file;
-          refresh();
+          await processSelectedFile(file);
         }
       });
     }
-
-    // Remove file
-    overlay.querySelector('#btn-remove-file')?.addEventListener('click', () => {
-      uploadedFile = null;
-      refresh();
-    });
 
     // Drag and drop
     const dropZone = overlay.querySelector('.upload-drop-zone');
@@ -94,52 +57,63 @@ export function openUploadModal({ store, toast, onComplete }) {
       dropZone.addEventListener('dragleave', () => {
         dropZone.classList.remove('drag-over');
       });
-      dropZone.addEventListener('drop', (e) => {
+      dropZone.addEventListener('drop', async (e) => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
         const file = e.dataTransfer.files[0];
         if (file) {
-          uploadedFile = file;
-          refresh();
+          await processSelectedFile(file);
         }
       });
     }
+  }
 
-    // Parse & Apply button
-    overlay.querySelector('#btn-parse-resume')?.addEventListener('click', async () => {
-      if (!uploadedFile) {
-        toast.show('Please upload a resume file first.', 'error');
-        return;
-      }
+  async function processSelectedFile(file) {
+    // Validation
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPDF) {
+      if (toast) toast.show('Please upload a PDF resume file.', 'error');
+      return;
+    }
 
-      isParsing = true;
+    if (file.size > 20 * 1024 * 1024) {
+      if (toast) toast.show('File too large. Maximum 20MB allowed.', 'error');
+      return;
+    }
+
+    uploadedFile = file;
+    isParsing = true;
+    statusMessage = 'Reading PDF vector document & pages...';
+    refresh();
+
+    try {
+      const engine = new PDFDocumentEngine();
+
+      statusMessage = 'Analyzing layout, typography & section bounds...';
       refresh();
 
-      try {
-        const parsedData = await parseUploadedResume(uploadedFile, selectedTemplate);
+      await engine.loadFile(file);
 
-        // Load parsed data into the store (replace mode — don't merge with defaults)
-        store.loadData(parsedData, true);
+      statusMessage = 'Parsing Objective, Technical Skills & Experience...';
+      refresh();
 
-        // Set the template
-        if (store.setTemplate) {
-          store.data.template = selectedTemplate;
-        }
-
-        toast.show(
-          `Resume parsed and loaded into ${selectedTemplate === 'jakes' ? "Jake's" : 'Amity'} format! Review and edit the fields as needed.`,
-          'success'
-        );
-
-        closeModal();
-        if (onComplete) onComplete(selectedTemplate);
-      } catch (err) {
-        console.error('Resume parsing error:', err);
-        toast.show('Failed to parse resume: ' + (err.message || 'Unknown error'), 'error');
-        isParsing = false;
-        refresh();
+      if (toast) {
+        toast.show('Resume parsed successfully! Original format preserved.', 'success');
       }
-    });
+
+      closeModal();
+      if (onComplete) {
+        onComplete(engine);
+      }
+    } catch (err) {
+      console.error('Failed to parse uploaded resume:', err);
+      isParsing = false;
+      statusMessage = '';
+      if (toast) {
+        toast.show('Error parsing resume: ' + (err.message || 'Ensure PDF contains selectable text.'), 'error');
+      }
+      refresh();
+    }
   }
 
   function closeModal() {
@@ -149,152 +123,95 @@ export function openUploadModal({ store, toast, onComplete }) {
   }
 
   function handleKey(e) {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape' && !isParsing) closeModal();
   }
 
   document.addEventListener('keydown', handleKey);
   attachListeners();
 }
 
-// ============================================================
-// MODAL HTML BUILDER
-// ============================================================
-
-function buildModalHTML(selectedTemplate, uploadedFile, isParsing) {
-  const fileName = uploadedFile ? uploadedFile.name : '';
-  const fileSize = uploadedFile ? formatFileSize(uploadedFile.size) : '';
-
+function buildModalHTML(uploadedFile, isParsing, statusMessage) {
   return `
     <div class="modal upload-modal" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
       <!-- Modal Header -->
       <div class="modal-header">
         <div>
           <div class="flex items-center gap-xs">
-            <span class="badge badge--purple" style="font-size:0.72rem;">UPLOAD & EDIT</span>
-            <span class="badge badge--green" style="font-size:0.72rem;">AUTO-FILL</span>
+            <span class="badge badge--green" style="font-size:0.75rem;">EVERY TEMPLATE ACCEPTED</span>
+            <span class="badge badge--yellow" style="font-size:0.75rem;">ORIGINAL FORMAT KEPT</span>
           </div>
-          <h2 class="modal-title mt-xs" id="upload-modal-title">Upload Your Resume</h2>
+          <h2 class="modal-title mt-xs" id="upload-modal-title">Upload Any Resume</h2>
           <p class="form-hint" style="margin-top:2px;">
-            Upload your existing resume to auto-fill all fields. Choose your preferred output format.
+            Upload your resume in any style, layout, or format. We preserve your header &amp; design exactly.
           </p>
         </div>
-        <button class="modal-close" id="btn-upload-modal-close" title="Close (ESC)">&times;</button>
+        ${!isParsing ? '<button class="modal-close" id="btn-upload-modal-close" title="Close (ESC)">&times;</button>' : ''}
       </div>
 
       <!-- Modal Body -->
       <div class="upload-modal-body">
-        <!-- Step 1: Choose Format -->
-        <div class="upload-step">
-          <div class="upload-step-header">
-            <span class="upload-step-number">1</span>
-            <span class="upload-step-title">Choose Output Format</span>
-          </div>
-
-          <div class="upload-tpl-grid">
-            <div class="upload-tpl-card ${selectedTemplate === 'amity' ? 'active' : ''}" data-tpl="amity">
-              <div class="upload-tpl-icon">🎓</div>
-              <div class="upload-tpl-info">
-                <strong>Amity Official</strong>
-                <span class="form-hint">Campus placements & T&P</span>
-              </div>
-              <div class="upload-tpl-check">${selectedTemplate === 'amity' ? '✓' : ''}</div>
-            </div>
-
-            <div class="upload-tpl-card ${selectedTemplate === 'jakes' ? 'active' : ''}" data-tpl="jakes">
-              <div class="upload-tpl-icon">📄</div>
-              <div class="upload-tpl-info">
-                <strong>Jake's Resume</strong>
-                <span class="form-hint">ATS-standard LaTeX style</span>
-              </div>
-              <div class="upload-tpl-check">${selectedTemplate === 'jakes' ? '✓' : ''}</div>
+        ${
+          isParsing
+            ? `
+          <div class="upload-parsing-state animate-in">
+            <div class="spinner spinner--lg"></div>
+            <h3 class="mt-md font-bold">${escapeHtml(uploadedFile ? uploadedFile.name : 'Processing Resume')}</h3>
+            <p class="form-hint mt-xs">${escapeHtml(statusMessage || 'Analyzing document...')}</p>
+            
+            <div class="upload-progress-steps mt-md">
+              <div class="prog-step done">✓ Reading original document</div>
+              <div class="prog-step done">✓ Preserving original header, fonts &amp; layout</div>
+              <div class="prog-step active">⏳ Extracting editable sections...</div>
             </div>
           </div>
-        </div>
-
-        <!-- Step 2: Upload File -->
-        <div class="upload-step">
-          <div class="upload-step-header">
-            <span class="upload-step-number">2</span>
-            <span class="upload-step-title">Upload Resume File</span>
-          </div>
-
-          ${uploadedFile ? `
-            <div class="upload-file-info">
-              <div class="upload-file-icon">📎</div>
-              <div class="upload-file-details">
-                <strong>${escapeHtml(fileName)}</strong>
-                <span class="form-hint">${fileSize}</span>
-              </div>
-              <button type="button" class="btn btn--sm btn--red" id="btn-remove-file" title="Remove file">&times;</button>
+        `
+            : `
+          <!-- Drop Zone -->
+          <div class="upload-drop-zone">
+            <div class="upload-drop-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
             </div>
-          ` : `
-            <div class="upload-drop-zone">
-              <div class="upload-drop-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
+            <p class="upload-drop-text"><strong>Drop any resume here</strong> or click to browse</p>
+            <p class="form-hint">Accepted: Any PDF template &middot; Max 20MB &middot; Mobile Friendly</p>
+            
+            <label class="btn btn--blue btn--sm mt-md" style="cursor:pointer;">
+              Select PDF File
+              <input type="file" id="resume-file-input" accept=".pdf,application/pdf" style="display:none;" />
+            </label>
+          </div>
+
+          <div class="upload-feature-highlights mt-md">
+            <div class="highlight-item">
+              <span class="highlight-icon">🔒</span>
+              <div>
+                <strong>100% Format Preservation</strong>
+                <p class="form-hint">Your header, colors, fonts, photos, and structure remain completely identical.</p>
               </div>
-              <p class="upload-drop-text"><strong>Drop your resume here</strong> or click to browse</p>
-              <p class="form-hint">Supports PDF, TXT &middot; Max 10MB</p>
-              <label class="btn btn--blue btn--sm mt-sm" style="cursor:pointer;">
-                Browse Files
-                <input type="file" id="resume-file-input" accept=".pdf,.txt,application/pdf,text/plain" style="display:none;" />
-              </label>
             </div>
-          `}
-        </div>
-
-        <!-- Step 3: Parse & Apply -->
-        <div class="upload-step">
-          <div class="upload-step-header">
-            <span class="upload-step-number">3</span>
-            <span class="upload-step-title">Parse & Auto-Fill</span>
+            <div class="highlight-item">
+              <span class="highlight-icon">⚡</span>
+              <div>
+                <strong>Quick Mobile Editing</strong>
+                <p class="form-hint">Edit Career Objective, Technical Skills, and Experience with live reflow.</p>
+              </div>
+            </div>
+            <div class="highlight-item">
+              <span class="highlight-icon">👁️</span>
+              <div>
+                <strong>On-Demand Preview</strong>
+                <p class="form-hint">Editor opens directly for fast input. Tap Preview Resume whenever you want.</p>
+              </div>
+            </div>
           </div>
-
-          <p class="form-hint mb-sm">
-            Your resume text will be analyzed and all matching sections will be filled automatically.
-            Missing information will be left blank for you to fill in manually.
-          </p>
-
-          <button 
-            type="button" 
-            class="btn btn--purple btn--block" 
-            id="btn-parse-resume"
-            ${!uploadedFile || isParsing ? 'disabled' : ''}
-          >
-            ${isParsing 
-              ? '<span class="upload-spinner"></span> Parsing Resume...' 
-              : uploadedFile 
-                ? `Parse & Fill ${selectedTemplate === 'jakes' ? "Jake's" : 'Amity'} Format →` 
-                : 'Upload a file first to continue'
-            }
-          </button>
-
-          <div class="upload-info-banner mt-sm">
-            <strong>How it works:</strong>
-            <ul class="upload-info-list">
-              <li>Personal info (name, email, phone) is extracted from the header</li>
-              <li>Sections like Experience, Projects, Skills are detected by headings</li>
-              <li>Bullet points and details are preserved in the correct format</li>
-              <li>You can edit any field after auto-fill in the builder</li>
-            </ul>
-          </div>
-        </div>
+        `
+        }
       </div>
     </div>
   `;
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 function escapeHtml(str) {

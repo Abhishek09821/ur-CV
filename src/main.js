@@ -13,12 +13,14 @@ import { ToastManager } from './components/toast.js';
 import { openTemplateModal } from './components/template-modal.js';
 import { openPreviewModal } from './components/preview-modal.js';
 import { openUploadModal } from './components/upload-modal.js';
+import { renderUploadEditor } from './views/upload-editor.js';
 import { AMITY_DEFAULT_PHOTO_DATA_URL } from './assets/amity-assets.js';
 
 class App {
   constructor() {
     this.store = new ResumeStore();
     this.toast = new ToastManager();
+    this.uploadedEngine = null;
     this.currentView = this.resolveRoute();
     this.root = document.getElementById('app');
 
@@ -29,6 +31,9 @@ class App {
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
     const hash = window.location.hash.replace(/^#\/?/, '');
 
+    if (hash === 'upload-editor' || path === '/upload-editor' || path === '/edit-resume') {
+      return 'upload-editor';
+    }
     if (hash === 'builder' || path === '/builder' || path === '/editor') {
       return 'builder';
     }
@@ -108,7 +113,14 @@ class App {
     this.currentView = view;
 
     if (push) {
-      const targetPath = view === 'builder' ? '/builder' : view === 'landing' ? '/' : '/404';
+      const targetPath =
+        view === 'builder'
+          ? '/builder'
+          : view === 'upload-editor'
+          ? '/edit-resume'
+          : view === 'landing'
+          ? '/'
+          : '/404';
       if (window.location.pathname !== targetPath) {
         window.history.pushState({ view }, '', targetPath);
       }
@@ -121,13 +133,31 @@ class App {
   render() {
     this.root.innerHTML = '';
 
+    // If on upload-editor, we use dedicated streamlined layout
+    if (this.currentView === 'upload-editor' && this.uploadedEngine) {
+      const uploadEditor = renderUploadEditor({
+        engine: this.uploadedEngine,
+        toast: this.toast,
+        onBack: () => this.navigateTo('landing'),
+      });
+      this.root.appendChild(uploadEditor);
+
+      // Add toast container if missing
+      if (!document.querySelector('.toast-container')) {
+        const toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+      }
+      return;
+    }
+
     // Header
     const header = renderHeader({
       currentView: this.currentView,
       template: this.store.getTemplate ? this.store.getTemplate() : 'amity',
       onHome: () => this.navigateTo('landing'),
       onBack: () => {
-        // If there is history, navigate back; otherwise go to landing
         if (window.history.length > 1) {
           window.history.back();
         } else {
@@ -136,10 +166,10 @@ class App {
       },
       onUpload: () => {
         openUploadModal({
-          store: this.store,
           toast: this.toast,
-          onComplete: () => {
-            this.render();
+          onComplete: (engine) => {
+            this.uploadedEngine = engine;
+            this.navigateTo('upload-editor');
           },
         });
       },
@@ -163,7 +193,7 @@ class App {
     });
     this.root.appendChild(header);
 
-    // Clean Neo-Brutalist Ticker (no emojis or AI gimmicks)
+    // Clean Neo-Brutalist Ticker
     if (this.currentView === 'landing') {
       const ticker = document.createElement('div');
       ticker.className = 'ticker';
@@ -190,10 +220,10 @@ class App {
         },
         onUploadMode: () => {
           openUploadModal({
-            store: this.store,
             toast: this.toast,
-            onComplete: () => {
-              this.navigateTo('builder');
+            onComplete: (engine) => {
+              this.uploadedEngine = engine;
+              this.navigateTo('upload-editor');
             },
           });
         },
