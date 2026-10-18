@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Offset shadow -->
+  <rect x="7" y="7" width="52" height="52" rx="12" fill="#111827" />
+  
+  <!-- Main yellow card -->
+  <rect x="4" y="4" width="52" height="52" rx="12" fill="#FEF08A" stroke="#111827" stroke-width="3.5" />
+  
+  <!-- "ur" black pill -->
+  <rect x="12" y="11" width="36" height="19" rx="5" fill="#111827" />
+  <text x="30" y="25" font-family="'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-weight="900" font-size="15" fill="#FEF08A" text-anchor="middle">ur</text>
+  
+  <!-- "CV" bold text -->
+  <text x="30" y="46" font-family="'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, sans-serif" font-weight="900" font-size="19" fill="#111827" text-anchor="middle" letter-spacing="0.5">CV</text>
+  
+  <!-- Bottom document line accent -->
+  <rect x="14" y="50" width="22" height="2.5" rx="1" fill="#111827" />
+</svg>
