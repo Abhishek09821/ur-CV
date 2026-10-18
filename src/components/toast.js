@@ -4,6 +4,22 @@
 export class ToastManager {
   show(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container') || this.createContainer();
+
+    // Prevent duplicate toast popups with identical message
+    const now = Date.now();
+    if (this._lastMessage === message && now - (this._lastTime || 0) < 1500) {
+      return;
+    }
+    const existing = Array.from(container.querySelectorAll('.toast')).find(
+      (el) => el.textContent.includes(message)
+    );
+    if (existing) {
+      return;
+    }
+
+    this._lastMessage = message;
+    this._lastTime = now;
+
     const toast = document.createElement('div');
     toast.className = `toast toast--${type}`;
     toast.innerHTML = `

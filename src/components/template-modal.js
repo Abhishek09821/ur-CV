@@ -114,9 +114,9 @@ export function openTemplateModal({ store, toast, onSelect }) {
     }
   });
 
-  overlay.querySelectorAll('.btn-select-tpl, .template-card').forEach((el) => {
-    el.addEventListener('click', () => {
-      const tpl = el.dataset.tpl || el.closest('[data-tpl]')?.dataset.tpl;
+  overlay.querySelectorAll('.template-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const tpl = card.dataset.tpl;
       if (!tpl) return;
 
       if (store.setTemplate) {
