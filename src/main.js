@@ -134,22 +134,50 @@ class App {
     this.root.innerHTML = '';
 
     // If on upload-editor, we use dedicated streamlined layout
-    if (this.currentView === 'upload-editor' && this.uploadedEngine) {
-      const uploadEditor = renderUploadEditor({
-        engine: this.uploadedEngine,
-        toast: this.toast,
-        onBack: () => this.navigateTo('landing'),
-      });
-      this.root.appendChild(uploadEditor);
+    if (this.currentView === 'upload-editor') {
+      if (this.uploadedEngine) {
+        const uploadEditor = renderUploadEditor({
+          engine: this.uploadedEngine,
+          toast: this.toast,
+          onBack: () => this.navigateTo('landing'),
+        });
+        this.root.appendChild(uploadEditor);
 
-      // Add toast container if missing
-      if (!document.querySelector('.toast-container')) {
-        const toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container';
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
+        if (!document.querySelector('.toast-container')) {
+          const toastContainer = document.createElement('div');
+          toastContainer.className = 'toast-container';
+          toastContainer.id = 'toast-container';
+          document.body.appendChild(toastContainer);
+        }
+        return;
+      } else {
+        // Auto-load sample resume if directly navigated to /edit-resume
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'container py-xl text-center';
+        loadingDiv.innerHTML = `
+          <div class="card p-xl mx-auto" style="max-width: 500px; margin-top: 60px;">
+            <h2 style="font-family: var(--font-display); font-size: 1.5rem; text-transform: uppercase;">Loading Resume Editor...</h2>
+            <p class="text-sm mt-sm" style="color: var(--text-secondary);">Initializing universal in-place resume engine...</p>
+          </div>
+        `;
+        this.root.appendChild(loadingDiv);
+
+        import('./utils/pdf-document-engine.js').then(async ({ PDFDocumentEngine }) => {
+          try {
+            const res = await fetch('/Abhishek_Tiwari_Resume_Updated.pdf');
+            const blob = await res.blob();
+            const file = new File([blob], 'Abhishek_Tiwari_Resume_Updated.pdf', { type: 'application/pdf' });
+            const engine = new PDFDocumentEngine();
+            await engine.loadFile(file);
+            this.uploadedEngine = engine;
+            this.render();
+          } catch (e) {
+            console.error('Error auto-loading resume:', e);
+            this.navigateTo('landing');
+          }
+        });
+        return;
       }
-      return;
     }
 
     // Header

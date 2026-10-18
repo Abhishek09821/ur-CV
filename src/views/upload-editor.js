@@ -1,14 +1,15 @@
 /**
  * Upload Editor View — Universal Quick Resume Editor for ANY Template
  *
- * Focuses strictly on:
+ * Focuses strictly on the 3 user-editable sections:
  * 1. Career Objective / Summary
  * 2. Technical Skills
  * 3. Work Experience / Internships
  *
- * The original header, layout, styling, and static sections are preserved 100%.
- * Features Live 1-Page Space Budget Gauges & Overflow Warnings.
- * Preview is hidden by default and shown on demand via "Preview Resume".
+ * Zero over-parsing: Text is preserved in full fidelity without synthetic field butchering.
+ * Non-destructive: Untouched sections stay 100% original PDF vector pixels (DITTO).
+ * Features Live Space Budget Gauges & Overflow Warnings.
+ * Preview is shown on demand via "Preview Resume" and allows instant PDF download.
  */
 
 export function renderUploadEditor({ engine, toast, onBack }) {
@@ -53,7 +54,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             <div class="space-bar-fill exceeded" style="width: 100%"></div>
           </div>
           <p class="space-alert-desc">
-            In a 1-page resume, excess text will not fit in this section without spilling. Please shorten by ~${cap.excessWords} words or remove a bullet to maintain single-page layout.
+            In this section, excess text will not fit without spilling or clipping. Please shorten by ~${cap.excessWords} words or remove a line to maintain clean formatting.
           </p>
         </div>
       `;
@@ -63,7 +64,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       <div class="space-limit-ok" id="gauge-${sectionType}">
         <div class="flex items-center justify-between text-xs mb-xs">
           <span class="flex items-center gap-xs font-bold" style="color: #15803d;">
-            <span>✓</span> Fits 1-page layout
+            <span>✓</span> Fits section cleanly
           </span>
           <span class="font-bold" style="color: #4b5563;">
             ${cap.currentLines} / ${cap.maxLines} lines used (${cap.percentUsed}%)
@@ -98,7 +99,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             <span class="badge badge--blue doc-badge">${formatLabel}</span>
             <span class="badge badge--white doc-badge">${fontLabel}</span>
             <span class="badge ${health.anyExceeded ? 'badge--red' : 'badge--green'} doc-badge" id="topbar-space-status">
-              ${health.anyExceeded ? `⚠️ EXCEEDS 1-PAGE LIMIT (+${health.totalExcess} LINES)` : '✓ FITS 1 PAGE CLEANLY'}
+              ${health.anyExceeded ? `⚠️ EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)` : '✓ FITS RESUME CLEANLY'}
             </span>
           </div>
         </div>
@@ -119,9 +120,9 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           <div class="upload-editor-intro">
             <h2>Quick Resume Editor</h2>
             <p>
-              Your original resume layout, fonts, header, and static sections are protected. Edit your
+              Your original resume layout, fonts, header, and static sections are protected 100%. Edit your
               <strong>Career Objective</strong>, <strong>Technical Skills</strong>, and <strong>Experience</strong>
-              below. Live space limit gauges will warn you if content exceeds available 1-page space.
+              below. Live space limit gauges will warn you if content exceeds available space.
             </p>
           </div>
 
@@ -130,7 +131,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             <div class="section-card-header">
               <div class="flex items-center gap-xs">
                 <span class="section-icon">🎯</span>
-                <span class="section-title">Career Objective &amp; Summary</span>
+                <span class="section-title">Career Objective &amp; Professional Summary</span>
               </div>
               <span class="badge badge--yellow" id="obj-char-count">
                 ${(currentData.objective || '').length} chars
@@ -161,28 +162,25 @@ export function renderUploadEditor({ engine, toast, onBack }) {
                 <span class="section-icon">💻</span>
                 <span class="section-title">Technical Skills</span>
               </div>
-              <span class="badge badge--blue" id="skills-cat-count">
-                ${(currentData.skills || []).length} categories
+              <span class="badge badge--blue" id="skills-line-count">
+                ${(currentData.skillsText || '').split('\n').filter((l) => l.trim()).length} skill lines
               </span>
             </div>
             <div class="section-card-body">
               <p class="form-hint mb-xs">
-                Organize your skills by domain (e.g. Programming, Web Dev, Tools, Cloud).
+                Each line represents a category and skills (e.g. <code>Languages: Python, C, C++, SQL</code>) or a bullet item (e.g. <code>• Web Dev: React, Node.js</code>).
               </p>
 
               <div id="gauge-container-skills">
                 ${renderSpaceGaugeHTML('skills')}
               </div>
               
-              <div class="skills-list" id="skills-items-container">
-                ${renderSkillsInputs(currentData.skills)}
-              </div>
-
-              <div class="mt-sm">
-                <button type="button" class="btn btn--sm btn--white" id="btn-add-skill-category">
-                  + Add Skill Category
-                </button>
-              </div>
+              <textarea 
+                class="form-textarea input-skills" 
+                id="input-skills-text" 
+                rows="8" 
+                placeholder="Languages: Python, C++, SQL&#10;Web Development: React, Node.js, Express&#10;Databases: PostgreSQL, MongoDB"
+              >${escapeHtml(currentData.skillsText || '')}</textarea>
             </div>
           </div>
 
@@ -193,28 +191,25 @@ export function renderUploadEditor({ engine, toast, onBack }) {
                 <span class="section-icon">💼</span>
                 <span class="section-title">Work Experience &amp; Internships</span>
               </div>
-              <span class="badge badge--green" id="exp-role-count">
-                ${(currentData.experience || []).length} roles
+              <span class="badge badge--green" id="exp-line-count">
+                ${(currentData.experienceText || '').split('\n').filter((l) => l.trim()).length} lines
               </span>
             </div>
             <div class="section-card-body">
               <p class="form-hint mb-xs">
-                Edit job titles, companies, dates, and bullet points. Format and bullets match your original resume style.
+                Edit job titles, companies, dates, and bullet points. Format headers (e.g. <code>Job Title | Dates</code>) and bullet points (e.g. <code>• Built responsive web interfaces...</code>) freely.
               </p>
 
               <div id="gauge-container-experience">
                 ${renderSpaceGaugeHTML('experience')}
               </div>
 
-              <div class="experience-list" id="exp-items-container">
-                ${renderExperienceInputs(currentData.experience)}
-              </div>
-
-              <div class="mt-sm">
-                <button type="button" class="btn btn--sm btn--white" id="btn-add-experience">
-                  + Add Experience / Role
-                </button>
-              </div>
+              <textarea 
+                class="form-textarea input-experience" 
+                id="input-experience-text" 
+                rows="12" 
+                placeholder="Software Engineer Intern | June 2024 – Aug 2024&#10;Google | Mountain View, CA&#10;• Developed full-stack features using React and Node.js&#10;• Improved API response latency by 35%"
+              >${escapeHtml(currentData.experienceText || '')}</textarea>
             </div>
           </div>
         </div>
@@ -238,484 +233,247 @@ export function renderUploadEditor({ engine, toast, onBack }) {
               <span class="badge badge--green">LIVE PREVIEW</span>
               <span class="preview-doc-name">${escapeHtml(currentData.fileName)}</span>
             </div>
-
-            <div class="preview-modal-controls">
-              <button type="button" class="btn btn--sm btn--white btn-zoom" id="btn-zoom-out" title="Zoom Out">&minus;</button>
-              <span class="zoom-display" id="zoom-level-text">${Math.round(zoomLevel * 100)}%</span>
-              <button type="button" class="btn btn--sm btn--white btn-zoom" id="btn-zoom-in" title="Zoom In">&plus;</button>
-              <button type="button" class="btn btn--sm btn--green" id="btn-preview-download-direct">Download PDF</button>
-              <button type="button" class="btn btn--sm btn--red" id="btn-close-preview" title="Close Preview">&times; Close</button>
+            <div class="preview-modal-ctrls">
+              <button type="button" class="btn btn--xs btn--white" id="btn-zoom-out" title="Zoom Out">-</button>
+              <span class="zoom-level-text" id="zoom-level-val">${Math.round(zoomLevel * 100)}%</span>
+              <button type="button" class="btn btn--xs btn--white" id="btn-zoom-in" title="Zoom In">+</button>
+              <button type="button" class="btn btn--xs btn--green" id="btn-preview-download">
+                DOWNLOAD PDF
+              </button>
+              <button type="button" class="btn btn--xs btn--red" id="btn-close-preview">
+                ✕ CLOSE
+              </button>
             </div>
           </div>
 
-          <div id="modal-overflow-banner-slot"></div>
+          <!-- Dynamic Space Warning Banner in Preview -->
+          <div id="preview-overflow-banner-container">
+            ${renderPreviewOverflowBanner()}
+          </div>
 
-          <div class="preview-modal-viewport" id="preview-modal-viewport">
-            <div class="preview-canvas-holder" id="preview-canvas-holder" style="transform: scale(${zoomLevel}); transform-origin: top center;">
-              <!-- Rendered canvases inserted here -->
+          <div class="preview-modal-canvas-viewport" id="preview-canvas-viewport">
+            <div class="preview-canvas-wrapper" id="preview-canvas-wrapper" style="transform: scale(${zoomLevel}); transform-origin: top center;">
+              <!-- Rendered canvas elements inserted dynamically -->
             </div>
           </div>
         </div>
       </div>
     `;
 
-    attachEvents();
+    attachListeners();
   }
 
-  function renderSkillsInputs(skills) {
-    if (!skills || skills.length === 0) {
-      return `
-        <div class="empty-section-hint">
-          No skills detected. Click "+ Add Skill Category" to add your skills.
+  function renderPreviewOverflowBanner() {
+    const health = getGlobalHealth();
+    if (!health.anyExceeded) return '';
+
+    const exceededSections = [];
+    if (health.objCap.isExceeded) exceededSections.push(`Objective (+${health.objCap.excessLines} lines)`);
+    if (health.skillsCap.isExceeded) exceededSections.push(`Skills (+${health.skillsCap.excessLines} lines)`);
+    if (health.expCap.isExceeded) exceededSections.push(`Experience (+${health.expCap.excessLines} lines)`);
+
+    return `
+      <div class="preview-overflow-banner">
+        <span class="preview-overflow-icon">⚠️</span>
+        <div class="preview-overflow-text">
+          <strong>Space Limit Warning:</strong> Content in <em>${exceededSections.join(', ')}</em> exceeds available space. Excess text was clipped cleanly to protect other sections. Shorten in the editor to make all text fit cleanly.
         </div>
-      `;
+      </div>
+    `;
+  }
+
+  function updateGaugesLive() {
+    const health = getGlobalHealth();
+
+    // Objective gauge
+    const objGaugeEl = container.querySelector('#gauge-container-objective');
+    if (objGaugeEl) objGaugeEl.innerHTML = renderSpaceGaugeHTML('objective');
+
+    // Skills gauge
+    const skillsGaugeEl = container.querySelector('#gauge-container-skills');
+    if (skillsGaugeEl) skillsGaugeEl.innerHTML = renderSpaceGaugeHTML('skills');
+
+    // Experience gauge
+    const expGaugeEl = container.querySelector('#gauge-container-experience');
+    if (expGaugeEl) expGaugeEl.innerHTML = renderSpaceGaugeHTML('experience');
+
+    // Top bar status
+    const topStatusEl = container.querySelector('#topbar-space-status');
+    if (topStatusEl) {
+      topStatusEl.className = `badge ${health.anyExceeded ? 'badge--red' : 'badge--green'} doc-badge`;
+      topStatusEl.textContent = health.anyExceeded
+        ? `⚠️ EXCEEDS SPACE LIMIT (+${health.totalExcess} LINES)`
+        : '✓ FITS RESUME CLEANLY';
     }
 
-    return skills
-      .map(
-        (item, idx) => `
-        <div class="skill-row-card" data-idx="${idx}">
-          <div class="skill-row-top">
-            <input 
-              type="text" 
-              class="form-input skill-category-input" 
-              data-idx="${idx}" 
-              placeholder="Domain / Category (e.g. Programming Languages)" 
-              value="${escapeHtml(item.category || '')}" 
-            />
-            <button type="button" class="btn btn--xs btn--red btn-remove-skill-category" data-idx="${idx}" title="Remove Category">
-              &times;
-            </button>
-          </div>
-          <textarea 
-            class="form-textarea skill-content-input mt-xs" 
-            data-idx="${idx}" 
-            rows="2" 
-            placeholder="Skills list (comma separated, e.g. Python, Java, JavaScript, C++)"
-          >${escapeHtml(item.skills || '')}</textarea>
-        </div>
-      `
-      )
-      .join('');
+    // Modal banner
+    const bannerEl = container.querySelector('#preview-overflow-banner-container');
+    if (bannerEl) bannerEl.innerHTML = renderPreviewOverflowBanner();
   }
 
-  function renderExperienceInputs(experience) {
-    if (!experience || experience.length === 0) {
-      return `
-        <div class="empty-section-hint">
-          No work experience entries detected. Click "+ Add Experience / Role" to add one.
-        </div>
-      `;
-    }
+  function attachListeners() {
+    // Back button
+    container.querySelector('#btn-editor-back')?.addEventListener('click', () => {
+      if (onBack) onBack();
+    });
 
-    return experience
-      .map(
-        (exp, expIdx) => `
-        <div class="experience-entry-card" data-exp-idx="${expIdx}">
-          <div class="exp-entry-header">
-            <span class="exp-number">Role #${expIdx + 1}</span>
-            <button type="button" class="btn btn--xs btn--red btn-remove-experience" data-exp-idx="${expIdx}" title="Delete Role">
-              Delete Role
-            </button>
-          </div>
-
-          <div class="grid grid-3 gap-xs mt-xs">
-            <div class="form-group">
-              <label class="form-label-sm">Role / Job Title</label>
-              <input 
-                type="text" 
-                class="form-input exp-title-input" 
-                data-exp-idx="${expIdx}" 
-                placeholder="Software Engineer Intern" 
-                value="${escapeHtml(exp.title || '')}" 
-              />
-            </div>
-            <div class="form-group">
-              <label class="form-label-sm">Company / Organization</label>
-              <input 
-                type="text" 
-                class="form-input exp-company-input" 
-                data-exp-idx="${expIdx}" 
-                placeholder="Google / Tech Corp" 
-                value="${escapeHtml(exp.company || '')}" 
-              />
-            </div>
-            <div class="form-group">
-              <label class="form-label-sm">Duration / Dates</label>
-              <input 
-                type="text" 
-                class="form-input exp-duration-input" 
-                data-exp-idx="${expIdx}" 
-                placeholder="May 2025 – Aug 2025" 
-                value="${escapeHtml(exp.duration || '')}" 
-              />
-            </div>
-          </div>
-
-          <!-- Bullets -->
-          <div class="exp-bullets-section mt-sm">
-            <label class="form-label-sm">Bullet Points &amp; Achievements</label>
-            <div class="exp-bullets-list" data-exp-idx="${expIdx}">
-              ${(exp.bullets || [])
-                .map(
-                  (bullet, bIdx) => `
-                <div class="bullet-row-item">
-                  <span class="bullet-bullet-mark">&bull;</span>
-                  <textarea 
-                    class="form-textarea bullet-text-input" 
-                    data-exp-idx="${expIdx}" 
-                    data-b-idx="${bIdx}" 
-                    rows="2" 
-                    placeholder="Describe your achievement with impact and metrics..."
-                  >${escapeHtml(bullet || '')}</textarea>
-                  <button type="button" class="btn btn--xs btn--white btn-remove-bullet" data-exp-idx="${expIdx}" data-b-idx="${bIdx}" title="Remove Bullet">
-                    &times;
-                  </button>
-                </div>
-              `
-                )
-                .join('')}
-            </div>
-
-            <div class="mt-xs">
-              <button type="button" class="btn btn--xs btn--white btn-add-bullet" data-exp-idx="${expIdx}">
-                + Add Bullet
-              </button>
-            </div>
-          </div>
-        </div>
-      `
-      )
-      .join('');
-  }
-
-  function syncDataFromInputs() {
-    // 1. Objective
+    // Objective textarea
     const objTextarea = container.querySelector('#input-objective-text');
     if (objTextarea) {
-      currentData.objective = objTextarea.value;
-      engine.updateObjective(currentData.objective);
+      objTextarea.addEventListener('input', (e) => {
+        currentData.objective = e.target.value;
+        engine.updateObjective(currentData.objective);
+        const countEl = container.querySelector('#obj-char-count');
+        if (countEl) countEl.textContent = `${currentData.objective.length} chars`;
+        updateGaugesLive();
+      });
     }
 
-    // 2. Skills
-    const skillCards = container.querySelectorAll('.skill-row-card');
-    const newSkills = [];
-    skillCards.forEach((card) => {
-      const catInput = card.querySelector('.skill-category-input');
-      const contentInput = card.querySelector('.skill-content-input');
-      if (catInput || contentInput) {
-        newSkills.push({
-          category: catInput ? catInput.value.trim() : '',
-          skills: contentInput ? contentInput.value.trim() : '',
-        });
-      }
-    });
-    currentData.skills = newSkills;
-    engine.updateSkills(newSkills);
-
-    // 3. Experience
-    const expCards = container.querySelectorAll('.experience-entry-card');
-    const newExp = [];
-    expCards.forEach((card) => {
-      const titleInput = card.querySelector('.exp-title-input');
-      const companyInput = card.querySelector('.exp-company-input');
-      const durationInput = card.querySelector('.exp-duration-input');
-      const bulletInputs = card.querySelectorAll('.bullet-text-input');
-
-      const bullets = [];
-      bulletInputs.forEach((b) => {
-        if (b.value.trim()) bullets.push(b.value.trim());
+    // Skills textarea
+    const skillsTextarea = container.querySelector('#input-skills-text');
+    if (skillsTextarea) {
+      skillsTextarea.addEventListener('input', (e) => {
+        currentData.skillsText = e.target.value;
+        engine.updateSkillsText(currentData.skillsText);
+        const lineCount = currentData.skillsText.split('\n').filter((l) => l.trim()).length;
+        const countEl = container.querySelector('#skills-line-count');
+        if (countEl) countEl.textContent = `${lineCount} skill lines`;
+        updateGaugesLive();
       });
+    }
 
-      newExp.push({
-        title: titleInput ? titleInput.value.trim() : '',
-        company: companyInput ? companyInput.value.trim() : '',
-        duration: durationInput ? durationInput.value.trim() : '',
-        bullets: bullets.length > 0 ? bullets : [''],
+    // Experience textarea
+    const expTextarea = container.querySelector('#input-experience-text');
+    if (expTextarea) {
+      expTextarea.addEventListener('input', (e) => {
+        currentData.experienceText = e.target.value;
+        engine.updateExperienceText(currentData.experienceText);
+        const lineCount = currentData.experienceText.split('\n').filter((l) => l.trim()).length;
+        const countEl = container.querySelector('#exp-line-count');
+        if (countEl) countEl.textContent = `${lineCount} lines`;
+        updateGaugesLive();
       });
-    });
-    currentData.experience = newExp;
-    engine.updateExperience(newExp);
+    }
 
-    updateGaugesInPlace();
+    // Preview button (desktop & mobile)
+    container.querySelector('#btn-open-preview')?.addEventListener('click', openPreview);
+    container.querySelector('#btn-mobile-preview')?.addEventListener('click', openPreview);
+
+    // Download button (desktop, mobile & modal)
+    container.querySelector('#btn-editor-download')?.addEventListener('click', handleDownload);
+    container.querySelector('#btn-mobile-download')?.addEventListener('click', handleDownload);
+    container.querySelector('#btn-preview-download')?.addEventListener('click', handleDownload);
+
+    // Close preview
+    container.querySelector('#btn-close-preview')?.addEventListener('click', closePreview);
+    const modalOverlay = container.querySelector('#preview-modal-overlay');
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closePreview();
+      });
+    }
+
+    // Zoom controls
+    container.querySelector('#btn-zoom-in')?.addEventListener('click', () => {
+      zoomLevel = Math.min(2.0, zoomLevel + 0.15);
+      applyZoom();
+    });
+
+    container.querySelector('#btn-zoom-out')?.addEventListener('click', () => {
+      zoomLevel = Math.max(0.4, zoomLevel - 0.15);
+      applyZoom();
+    });
   }
 
-  function updateGaugesInPlace() {
-    const objHolder = container.querySelector('#gauge-container-objective');
-    if (objHolder) objHolder.innerHTML = renderSpaceGaugeHTML('objective');
-
-    const skillsHolder = container.querySelector('#gauge-container-skills');
-    if (skillsHolder) skillsHolder.innerHTML = renderSpaceGaugeHTML('skills');
-
-    const expHolder = container.querySelector('#gauge-container-experience');
-    if (expHolder) expHolder.innerHTML = renderSpaceGaugeHTML('experience');
-
-    const health = getGlobalHealth();
-    const statusBadge = container.querySelector('#topbar-space-status');
-    if (statusBadge) {
-      if (health.anyExceeded) {
-        statusBadge.className = 'badge badge--red doc-badge';
-        statusBadge.textContent = `⚠️ EXCEEDS 1-PAGE LIMIT (+${health.totalExcess} LINES)`;
-      } else {
-        statusBadge.className = 'badge badge--green doc-badge';
-        statusBadge.textContent = '✓ FITS 1 PAGE CLEANLY';
-      }
+  function applyZoom() {
+    const wrapper = container.querySelector('#preview-canvas-wrapper');
+    const valText = container.querySelector('#zoom-level-val');
+    if (wrapper) {
+      wrapper.style.transform = `scale(${zoomLevel})`;
+    }
+    if (valText) {
+      valText.textContent = `${Math.round(zoomLevel * 100)}%`;
     }
   }
 
   async function openPreview() {
-    syncDataFromInputs();
     isPreviewOpen = true;
+    const modalEl = container.querySelector('#preview-modal-overlay');
+    if (modalEl) modalEl.classList.add('active');
 
-    const overlay = container.querySelector('#preview-modal-overlay');
-    const holder = container.querySelector('#preview-canvas-holder');
-    const bannerSlot = container.querySelector('#modal-overflow-banner-slot');
-    if (!overlay || !holder) return;
-
-    overlay.classList.add('active');
-    holder.innerHTML = `
-      <div class="preview-loading">
-        <div class="spinner"></div>
-        <p class="mt-sm font-bold">Rendering preview with your exact template...</p>
-      </div>
-    `;
-
+    // Re-render pages
     try {
-      const pages = await engine.render();
-      holder.innerHTML = '';
-      pages.forEach((pageCanvas, i) => {
-        const pageCard = document.createElement('div');
-        pageCard.className = 'preview-sheet-frame';
-        pageCard.innerHTML = `<div class="sheet-page-num">PAGE ${i + 1}</div>`;
-        pageCard.appendChild(pageCanvas);
-        holder.appendChild(pageCard);
-      });
+      await engine.render();
+      const wrapper = container.querySelector('#preview-canvas-wrapper');
+      if (wrapper) {
+        wrapper.innerHTML = '';
+        for (let i = 0; i < engine.renderedPages.length; i++) {
+          const pageCanvas = engine.renderedPages[i];
+          const pageContainer = document.createElement('div');
+          pageContainer.className = 'preview-page-canvas-card';
 
-      // Show overflow banner if warnings exist
-      if (bannerSlot) {
-        const health = getGlobalHealth();
-        if (health.anyExceeded) {
-          const exceededNames = [];
-          if (health.objCap.isExceeded) exceededNames.push(`Objective (+${health.objCap.excessLines} lines)`);
-          if (health.skillsCap.isExceeded) exceededNames.push(`Skills (+${health.skillsCap.excessLines} lines)`);
-          if (health.expCap.isExceeded) exceededNames.push(`Experience (+${health.expCap.excessLines} lines)`);
+          const pageHeader = document.createElement('div');
+          pageHeader.className = 'preview-page-header';
+          pageHeader.textContent = `PAGE ${i + 1}`;
+          pageContainer.appendChild(pageHeader);
 
-          bannerSlot.innerHTML = `
-            <div class="preview-overflow-banner">
-              <span>⚠️</span>
-              <div>
-                <strong>1-Page Space Limit Warning:</strong> Content in <em>${exceededNames.join(', ')}</em> exceeds available space.
-                Text was protected to prevent overlapping next sections. Please trim in the editor to make all text fit cleanly.
-              </div>
-            </div>
-          `;
-        } else {
-          bannerSlot.innerHTML = '';
+          // Clone canvas visual presentation
+          const displayCanvas = document.createElement('canvas');
+          displayCanvas.width = pageCanvas.width;
+          displayCanvas.height = pageCanvas.height;
+          displayCanvas.style.width = '100%';
+          displayCanvas.style.maxWidth = '850px';
+          displayCanvas.style.height = 'auto';
+          displayCanvas.style.display = 'block';
+          displayCanvas.style.boxShadow = '0 8px 30px rgba(0,0,0,0.18)';
+          displayCanvas.style.background = '#FFFFFF';
+
+          const dctx = displayCanvas.getContext('2d');
+          dctx.drawImage(pageCanvas, 0, 0);
+
+          pageContainer.appendChild(displayCanvas);
+          wrapper.appendChild(pageContainer);
         }
       }
-    } catch (err) {
-      console.error('Preview render error:', err);
-      holder.innerHTML = `<div class="preview-error">Failed to render preview: ${escapeHtml(err.message)}</div>`;
+
+      // Update overflow warning banner
+      const bannerEl = container.querySelector('#preview-overflow-banner-container');
+      if (bannerEl) bannerEl.innerHTML = renderPreviewOverflowBanner();
+    } catch (e) {
+      console.error('Error rendering preview:', e);
+      if (toast) toast.show('Failed to render preview.', 'error');
     }
   }
 
   function closePreview() {
     isPreviewOpen = false;
-    const overlay = container.querySelector('#preview-modal-overlay');
-    if (overlay) overlay.classList.remove('active');
+    const modalEl = container.querySelector('#preview-modal-overlay');
+    if (modalEl) modalEl.classList.remove('active');
   }
 
-  async function handleDownloadPDF() {
-    syncDataFromInputs();
-    const health = getGlobalHealth();
-
-    if (health.anyExceeded) {
-      const proceed = confirm(
-        `Warning: Your edits exceed the 1-page section limit by ~${health.totalExcess} lines. To prevent overlapping headings, excess lines have been clipped. Do you want to download now anyway?`
-      );
-      if (!proceed) return;
-    }
-
-    if (toast) toast.show('Compiling high-quality PDF with preserved template...', 'info');
-
+  async function handleDownload() {
     try {
+      if (toast) toast.show('Generating high-resolution vector PDF...', 'info');
       await engine.exportPDF();
-      if (toast) toast.show('Resume PDF downloaded successfully!', 'success');
-    } catch (err) {
-      console.error('Download error:', err);
-      if (toast) toast.show('Download failed: ' + err.message, 'error');
+      if (toast) toast.show('PDF downloaded successfully!', 'success');
+    } catch (e) {
+      console.error('Download error:', e);
+      if (toast) toast.show('Error generating PDF.', 'error');
     }
   }
 
-  function attachEvents() {
-    // Back
-    container.querySelector('#btn-editor-back')?.addEventListener('click', () => {
-      if (onBack) onBack();
-    });
-
-    // Preview buttons (desktop topbar & mobile bar)
-    container.querySelector('#btn-open-preview')?.addEventListener('click', openPreview);
-    container.querySelector('#btn-mobile-preview')?.addEventListener('click', openPreview);
-
-    // Download buttons
-    container.querySelector('#btn-editor-download')?.addEventListener('click', handleDownloadPDF);
-    container.querySelector('#btn-mobile-download')?.addEventListener('click', handleDownloadPDF);
-    container.querySelector('#btn-preview-download-direct')?.addEventListener('click', handleDownloadPDF);
-
-    // Close preview
-    container.querySelector('#btn-close-preview')?.addEventListener('click', closePreview);
-
-    // Zoom controls
-    const holder = container.querySelector('#preview-canvas-holder');
-    const zoomText = container.querySelector('#zoom-level-text');
-
-    container.querySelector('#btn-zoom-in')?.addEventListener('click', () => {
-      zoomLevel = Math.min(2.0, zoomLevel + 0.15);
-      if (holder) holder.style.transform = `scale(${zoomLevel})`;
-      if (zoomText) zoomText.textContent = `${Math.round(zoomLevel * 100)}%`;
-    });
-
-    container.querySelector('#btn-zoom-out')?.addEventListener('click', () => {
-      zoomLevel = Math.max(0.4, zoomLevel - 0.15);
-      if (holder) holder.style.transform = `scale(${zoomLevel})`;
-      if (zoomText) zoomText.textContent = `${Math.round(zoomLevel * 100)}%`;
-    });
-
-    // Objective char count & dynamic gauge update
-    const objTextarea = container.querySelector('#input-objective-text');
-    const objCount = container.querySelector('#obj-char-count');
-    if (objTextarea) {
-      objTextarea.addEventListener('input', () => {
-        if (objCount) objCount.textContent = `${objTextarea.value.length} chars`;
-        syncDataFromInputs();
-      });
-    }
-
-    // Add Skill Category
-    container.querySelector('#btn-add-skill-category')?.addEventListener('click', () => {
-      syncDataFromInputs();
-      currentData.skills.push({ category: 'New Category', skills: '' });
-      const skillsContainer = container.querySelector('#skills-items-container');
-      if (skillsContainer) {
-        skillsContainer.innerHTML = renderSkillsInputs(currentData.skills);
-        attachDynamicEvents();
-      }
-      const countEl = container.querySelector('#skills-cat-count');
-      if (countEl) countEl.textContent = `${currentData.skills.length} categories`;
-      updateGaugesInPlace();
-    });
-
-    // Add Experience Role
-    container.querySelector('#btn-add-experience')?.addEventListener('click', () => {
-      syncDataFromInputs();
-      currentData.experience.push({
-        title: 'Job / Internship Title',
-        company: 'Company Name',
-        duration: 'Month Year – Present',
-        bullets: ['Describe your impact and achievements...'],
-      });
-      const expContainer = container.querySelector('#exp-items-container');
-      if (expContainer) {
-        expContainer.innerHTML = renderExperienceInputs(currentData.experience);
-        attachDynamicEvents();
-      }
-      const countEl = container.querySelector('#exp-role-count');
-      if (countEl) countEl.textContent = `${currentData.experience.length} roles`;
-      updateGaugesInPlace();
-    });
-
-    attachDynamicEvents();
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
-  function attachDynamicEvents() {
-    // Listen to changes on all inputs inside dynamic lists
-    container.querySelectorAll('.skills-list input, .skills-list textarea, .experience-list input, .experience-list textarea').forEach((el) => {
-      el.oninput = () => {
-        syncDataFromInputs();
-      };
-    });
-
-    // Remove skill category
-    container.querySelectorAll('.btn-remove-skill-category').forEach((btn) => {
-      btn.onclick = () => {
-        syncDataFromInputs();
-        const idx = parseInt(btn.dataset.idx, 10);
-        currentData.skills.splice(idx, 1);
-        const skillsContainer = container.querySelector('#skills-items-container');
-        if (skillsContainer) {
-          skillsContainer.innerHTML = renderSkillsInputs(currentData.skills);
-          attachDynamicEvents();
-        }
-        const countEl = container.querySelector('#skills-cat-count');
-        if (countEl) countEl.textContent = `${currentData.skills.length} categories`;
-        updateGaugesInPlace();
-      };
-    });
-
-    // Remove experience role
-    container.querySelectorAll('.btn-remove-experience').forEach((btn) => {
-      btn.onclick = () => {
-        syncDataFromInputs();
-        const expIdx = parseInt(btn.dataset.expIdx, 10);
-        currentData.experience.splice(expIdx, 1);
-        const expContainer = container.querySelector('#exp-items-container');
-        if (expContainer) {
-          expContainer.innerHTML = renderExperienceInputs(currentData.experience);
-          attachDynamicEvents();
-        }
-        const countEl = container.querySelector('#exp-role-count');
-        if (countEl) countEl.textContent = `${currentData.experience.length} roles`;
-        updateGaugesInPlace();
-      };
-    });
-
-    // Add bullet to an experience
-    container.querySelectorAll('.btn-add-bullet').forEach((btn) => {
-      btn.onclick = () => {
-        syncDataFromInputs();
-        const expIdx = parseInt(btn.dataset.expIdx, 10);
-        if (currentData.experience[expIdx]) {
-          if (!currentData.experience[expIdx].bullets) currentData.experience[expIdx].bullets = [];
-          currentData.experience[expIdx].bullets.push('');
-          const expContainer = container.querySelector('#exp-items-container');
-          if (expContainer) {
-            expContainer.innerHTML = renderExperienceInputs(currentData.experience);
-            attachDynamicEvents();
-          }
-          updateGaugesInPlace();
-        }
-      };
-    });
-
-    // Remove bullet
-    container.querySelectorAll('.btn-remove-bullet').forEach((btn) => {
-      btn.onclick = () => {
-        syncDataFromInputs();
-        const expIdx = parseInt(btn.dataset.expIdx, 10);
-        const bIdx = parseInt(btn.dataset.bIdx, 10);
-        if (currentData.experience[expIdx] && currentData.experience[expIdx].bullets) {
-          currentData.experience[expIdx].bullets.splice(bIdx, 1);
-          const expContainer = container.querySelector('#exp-items-container');
-          if (expContainer) {
-            expContainer.innerHTML = renderExperienceInputs(currentData.experience);
-            attachDynamicEvents();
-          }
-          updateGaugesInPlace();
-        }
-      };
-    });
-  }
-
+  // Initial render
   renderView();
-  return container;
-}
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return container;
 }

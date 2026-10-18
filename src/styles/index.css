@@ -4003,6 +4003,33 @@ body {
   padding: var(--space-md);
 }
 
+.input-objective,
+.input-skills,
+.input-experience {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  resize: vertical;
+  margin-top: var(--space-xs);
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-objective:focus,
+.input-skills:focus,
+.input-experience:focus {
+  outline: none;
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-md);
+}
+
 .skill-row-card {
   background: var(--bg-primary);
   border: 2px solid var(--border-color);
@@ -4236,36 +4263,40 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-sm) var(--space-md);
+  padding: 10px 16px;
   background-color: var(--bg-secondary);
   border-bottom: var(--border-width) solid var(--border-color);
   box-shadow: 0 4px 0 var(--border-color);
   z-index: 10;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
+  flex-wrap: nowrap;
+  gap: var(--space-sm);
 }
 
 .preview-doc-name {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.9rem;
-  max-width: 220px;
+  font-size: 0.85rem;
+  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.preview-modal-ctrls,
 .preview-modal-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 6px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
+.zoom-level-text,
 .zoom-display {
   font-family: var(--font-mono);
   font-weight: 800;
   font-size: 0.85rem;
-  min-width: 48px;
+  min-width: 44px;
   text-align: center;
 }
 
@@ -4373,6 +4404,27 @@ body {
 .prog-step.active {
   color: var(--text-primary);
   font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .preview-modal-top {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .preview-modal-top .preview-doc-name {
+    display: none;
+  }
+  .preview-modal-ctrls {
+    gap: 4px;
+  }
+  .preview-modal-ctrls .btn {
+    padding: 4px 8px;
+    font-size: 0.78rem;
+  }
+  .zoom-level-text {
+    min-width: 36px;
+    font-size: 0.78rem;
+  }
 }
 
 

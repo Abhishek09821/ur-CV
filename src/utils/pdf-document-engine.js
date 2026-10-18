@@ -6,7 +6,8 @@
  * - Preserves 100% of original visual assets (headers, photos, logos, lines, tables, static sections)
  * - Intelligent layout detection: Serif vs Sans-serif, date alignments, bullet styles, margins
  * - Greedy interval deduplication eliminates duplicate/competing PDF text layers
- * - Surgical wide-masking eliminates text clipping and edge bleed (no leftover letters)
+ * - Non-destructive: Untouched sections remain 100% original PDF vector pixels (DITTO)
+ * - Surgical wide-masking on edit eliminates text clipping and edge bleed (no leftover letters)
  * - Strict font size preservation: NEVER auto-shrinks fonts to tiny unreadable ants
  * - Live 1-Page Space Budget & Capacity Warnings prevent overflow
  */
@@ -23,18 +24,15 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Strict regex patterns for section headings across arbitrary resume styles
-const STRICT_HEADINGS = [
+// Strict headings for the 3 editable sections
+const EDITABLE_HEADINGS = [
   { type: 'objective', regex: /^(career\s*objective|objective|professional\s*summary|profile\s*summary|summary|profile|about\s*me|executive\s*summary|career\s*profile|personal\s*summary)$/i },
-  { type: 'education', regex: /^(academic\s*details|education|educational\s*qualifications|academic\s*qualifications|academic\s*background|qualifications)$/i },
   { type: 'experience', regex: /^(work\s*experience|professional\s*experience|industry\s*experience|experience|internships?|employment\s*history|relevant\s*experience)$/i },
-  { type: 'projects', regex: /^((technical|academic|personal|software)?\s*projects|project\s*work)$/i },
   { type: 'skills', regex: /^(technical\s*skills|core\s*skills|key\s*skills|skills(\s*(&|and)\s*abilities)?|skills|technical\s*competencies|technologies)$/i },
-  { type: 'awards', regex: /^(awards(\s*(&|and)\s*achievements)?|certifications?(\s*(&|and)\s*achievements)?|achievements|certifications?|honors?|certificates?)$/i },
-  { type: 'leadership', regex: /^(leadership(\s*(&|and)\s*initiative)?|extra[\s-]*curricular(\s*activities)?|co-curricular(\s*activities)?)$/i },
-  { type: 'links', regex: /^(links|profiles|social\s*links|online\s*profiles)$/i },
-  { type: 'declaration', regex: /^(self\s*declaration|declaration)$/i },
 ];
+
+// Any standard resume section heading to determine section boundaries
+const ANY_HEADING_REGEX = /^(career\s*objective|objective|professional\s*summary|profile\s*summary|summary|profile|about\s*me|academic\s*details|education|educational\s*qualifications|academic\s*qualifications|academic\s*background|qualifications|work\s*experience|professional\s*experience|industry\s*experience|experience|internships?|employment\s*history|relevant\s*experience|projects?|project\s*work|technical\s*skills|core\s*skills|key\s*skills|skills|technologies|awards?|certifications?|achievements?|honors?|certificates?|leadership|co-curricular|extra[\s-]*curricular|links|profiles|social\s*links|declaration|self\s*declaration|publications?|coursework|involvement|volunteering?|organizations?|references?|interests?)$/i;
 
 const BULLET_START_REGEX = /^[•\-\*\u2022\u25cf\u25e6\u25aa\u25b8\u2023\u2219]/;
 
@@ -51,8 +49,8 @@ export class PDFDocumentEngine {
 
     this.pagesData = [];
     this.detectedLayout = {
-      fontFamily: '"Times New Roman", Times, Georgia, serif',
-      isSerif: true,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      isSerif: false,
       textColor: '#1A1A2E',
       fontSize: 19, // Canvas pixels (approx 9.5pt)
       lineHeight: 1.35,
@@ -64,8 +62,15 @@ export class PDFDocumentEngine {
     // User editable data extracted from the document
     this.data = {
       objective: '',
-      skills: [], // Array of { category: string, skills: string }
-      experience: [], // Array of { title, company, duration, bullets: string[] }
+      skillsText: '',
+      experienceText: '',
+    };
+
+    // Track user modifications: only modified sections are masked & re-rendered
+    this.isModified = {
+      objective: false,
+      skills: false,
+      experience: false,
     };
 
     this.renderedPages = []; // Canvases of final modified pages
@@ -118,7 +123,7 @@ export class PDFDocumentEngine {
         originalCanvas: bgCanvas,
         textContent,
         lines,
-        sections: [],
+        headings: [],
         boxes: {},
       });
     }
@@ -132,7 +137,14 @@ export class PDFDocumentEngine {
     // Step 4: Extract editable content from lines
     this._extractEditableData();
 
-    // Step 5: Render initial preview
+    // Reset modification flags on initial load
+    this.isModified = {
+      objective: false,
+      skills: false,
+      experience: false,
+    };
+
+    // Step 5: Render initial preview (100% pristine canvas clone with zero modifications)
     await this.render();
 
     return this.getData();
@@ -182,7 +194,7 @@ export class PDFDocumentEngine {
     // Sort lines top to bottom
     lineBuckets.sort((a, b) => a.vy - b.vy);
 
-    // Greedy Interval Selection to eliminate competing/overlapping text layers
+    // Greedy Interval Selection to eliminate competing/overlapping duplicate text layers
     for (const b of lineBuckets) {
       b.items.sort((a, b) => a.vx - b.vx);
       const cleanItems = [];
@@ -192,7 +204,7 @@ export class PDFDocumentEngine {
         const itLeft = it.vx;
         const itRight = it.vx + it.widthPx;
 
-        // If an item starts well inside an already occupied interval (> 20px overlap), it belongs to a shadow/duplicate layer
+        // If an item starts well inside an already occupied interval (> 20px overlap), skip shadow duplicate
         if (itLeft < currentRight - 20) {
           continue;
         }
@@ -217,8 +229,11 @@ export class PDFDocumentEngine {
 
       const firstItem = bucket.items[0];
       const fontName = (firstItem.fontName || '').toLowerCase();
+      const styleFamily = (firstItem.fontFamily || '').toLowerCase();
+
+      const isSans = styleFamily.includes('sans') || fontName.includes('sans') || fontName.includes('arial') || fontName.includes('calibri') || fontName.includes('helvetica');
+      const isSerif = !isSans && (styleFamily === 'serif' || fontName.includes('times') || fontName.includes('roman') || fontName.includes('cambria') || fontName.includes('georgia') || fontName.includes('garamond') || fontName.includes('cmr'));
       const isBold = /bold|black|heavy|medium|600|700|800/.test(fontName);
-      const isSerif = /times|roman|georgia|cambria|garamond|serif/.test(fontName) || /serif/i.test(firstItem.fontFamily);
 
       lines.push({
         text,
@@ -231,7 +246,10 @@ export class PDFDocumentEngine {
         fontSizePx: maxFontSize,
         isBold,
         isSerif,
-        fontFamily: firstItem.fontFamily || (isSerif ? '"Times New Roman", Times, Georgia, serif' : 'system-ui, -apple-system, sans-serif'),
+        isSans,
+        fontFamily: isSerif
+          ? '"Times New Roman", Times, Georgia, "Liberation Serif", serif'
+          : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         items: bucket.items,
       });
     }
@@ -252,7 +270,7 @@ export class PDFDocumentEngine {
     for (const page of this.pagesData) {
       for (const line of page.lines) {
         if (line.isSerif) serifCount++;
-        else sansCount++;
+        else if (line.isSans) sansCount++;
 
         if (line.fontSizePx >= 14 && line.fontSizePx <= 28) {
           totalFontSize += line.fontSizePx;
@@ -268,11 +286,11 @@ export class PDFDocumentEngine {
       }
     }
 
-    const isSerif = serifCount >= sansCount;
+    const isSerif = serifCount > sansCount;
     this.detectedLayout.isSerif = isSerif;
     this.detectedLayout.fontFamily = isSerif
-      ? '"Times New Roman", Times, Georgia, serif'
-      : 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+      ? '"Times New Roman", Times, Georgia, "Liberation Serif", serif'
+      : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
     const avgFontPx = fontCount > 0 ? totalFontSize / fontCount : 19;
     this.detectedLayout.fontSize = Math.max(18, Math.min(21, avgFontPx));
@@ -287,7 +305,7 @@ export class PDFDocumentEngine {
   _detectSectionsAndBoxes() {
     for (let pIdx = 0; pIdx < this.pagesData.length; pIdx++) {
       const page = this.pagesData[pIdx];
-      const detected = [];
+      const headings = [];
 
       for (let i = 0; i < page.lines.length; i++) {
         const line = page.lines[i];
@@ -296,36 +314,33 @@ export class PDFDocumentEngine {
           .replace(/[:#*\s]+$/, '')
           .trim();
 
-        if (cleanText.length >= 3 && cleanText.length <= 45 && !line.text.startsWith('•')) {
-          for (const h of STRICT_HEADINGS) {
-            if (h.regex.test(cleanText) && !detected.some((s) => s.type === h.type)) {
-              detected.push({
-                type: h.type,
-                text: cleanText,
-                lineIdx: i,
-                vy: line.vy,
-                yTop: line.yTop,
-                yBottom: line.yBottom,
-                minX: line.minX,
-                maxX: line.maxX,
-                fontSizePx: line.fontSizePx,
-              });
-              break;
-            }
-          }
+        if (cleanText.length >= 3 && cleanText.length <= 48 && !line.text.startsWith('•') && ANY_HEADING_REGEX.test(cleanText)) {
+          const editMatch = EDITABLE_HEADINGS.find((h) => h.regex.test(cleanText));
+          headings.push({
+            type: editMatch ? editMatch.type : 'other',
+            text: cleanText,
+            lineIdx: i,
+            vy: line.vy,
+            yTop: line.yTop,
+            yBottom: line.yBottom,
+            minX: line.minX,
+            maxX: line.maxX,
+            fontSizePx: line.fontSizePx,
+          });
         }
       }
 
-      detected.sort((a, b) => a.vy - b.vy);
-      page.sections = detected;
+      headings.sort((a, b) => a.vy - b.vy);
+      page.headings = headings;
 
-      // Calculate dynamic bounding boxes for sections on this page
+      // Calculate dynamic bounding boxes for the 3 editable sections on this page
       const boxes = {};
 
-      for (let i = 0; i < detected.length; i++) {
-        const cur = detected[i];
-        const next = detected[i + 1];
+      for (let i = 0; i < headings.length; i++) {
+        const cur = headings[i];
+        if (cur.type === 'other') continue; // Only compute boxes for the 3 target sections
 
+        const next = headings[i + 1];
         const secLines = page.lines.slice(cur.lineIdx + 1, next ? next.lineIdx : page.lines.length);
 
         const secMinX = secLines.length > 0 ? Math.min(...secLines.map((l) => l.minX)) : cur.minX;
@@ -334,10 +349,10 @@ export class PDFDocumentEngine {
         const lastLineY = secLines.length > 0 ? secLines[secLines.length - 1].vy : cur.vy + 60;
 
         // Wide mask bounds: guaranteed 100% whiteout covering entire text margin to margin
-        const maskLeft = Math.max(15, Math.min(cur.minX, secMinX) - 15);
-        const maskRight = Math.min(page.originalCanvas.width - 15, Math.max(cur.maxX, secMaxX) + 16);
-        const maskTop = Math.min(Math.round(cur.vy + 8), Math.round(firstLineY - 18));
-        const maskBottom = next ? Math.round(next.vy - 14) : Math.round(Math.min(page.originalCanvas.height - 30, lastLineY + 25));
+        const maskLeft = Math.max(10, Math.min(cur.minX, secMinX) - 20);
+        const maskRight = Math.min(page.originalCanvas.width - 15, Math.max(cur.maxX, secMaxX) + 25);
+        const maskTop = Math.min(Math.round(cur.vy + 6), Math.round(firstLineY - 16));
+        const maskBottom = next ? Math.round(next.vy - 12) : Math.round(Math.min(page.originalCanvas.height - 25, lastLineY + 25));
 
         const maskWidth = maskRight - maskLeft;
         const maskHeight = Math.max(30, maskBottom - maskTop);
@@ -350,6 +365,7 @@ export class PDFDocumentEngine {
           maskTop,
           maskWidth,
           maskHeight,
+          maskBottom,
           contentLeft: secMinX,
           contentWidth: Math.max(200, secMaxX - secMinX),
           capacityLines,
@@ -360,10 +376,10 @@ export class PDFDocumentEngine {
       }
 
       // Check if page 2 starts with skills continuation (before the first heading on page 2)
-      if (pIdx > 0 && detected.length > 0 && detected[0].type !== 'skills') {
-        const firstHeadingTop = detected[0].vy;
+      if (pIdx > 0 && headings.length > 0 && headings[0].type !== 'skills') {
+        const firstHeadingTop = headings[0].vy;
         if (firstHeadingTop > 70) {
-          const contLines = page.lines.slice(0, detected[0].lineIdx);
+          const contLines = page.lines.slice(0, headings[0].lineIdx);
           let secMinX = 86;
           let secMaxX = page.originalCanvas.width - 86;
           if (contLines.length > 0) {
@@ -371,10 +387,10 @@ export class PDFDocumentEngine {
             secMaxX = Math.max(...contLines.map((l) => l.maxX));
           }
 
-          const maskLeft = Math.max(15, Math.min(secMinX - 15, 75));
-          const maskRight = Math.min(page.originalCanvas.width - 15, secMaxX + 16);
-          const maskTop = 30;
-          const maskBottom = Math.round(firstHeadingTop - 18);
+          const maskLeft = Math.max(10, Math.min(secMinX - 20, 75));
+          const maskRight = Math.min(page.originalCanvas.width - 15, secMaxX + 25);
+          const maskTop = 25;
+          const maskBottom = Math.round(firstHeadingTop - 14);
           const maskHeight = Math.max(30, maskBottom - maskTop);
 
           const lineHeight = this.detectedLayout.fontSize * this.detectedLayout.lineHeight;
@@ -384,11 +400,12 @@ export class PDFDocumentEngine {
             maskTop,
             maskWidth: maskRight - maskLeft,
             maskHeight,
+            maskBottom,
             contentLeft: secMinX,
             contentWidth: Math.max(200, secMaxX - secMinX),
             capacityLines: Math.floor(maskHeight / lineHeight),
             lineStart: 0,
-            lineEnd: detected[0].lineIdx,
+            lineEnd: headings[0].lineIdx,
             originalLinesCount: contLines.length,
           };
         }
@@ -399,7 +416,8 @@ export class PDFDocumentEngine {
   }
 
   /**
-   * Extract Objective, Skills, and Experience with high accuracy
+   * Extract Objective, Skills, and Experience with high fidelity
+   * Keeps lines as readable formatted text blocks
    */
   _extractEditableData() {
     let objectiveLines = [];
@@ -438,118 +456,12 @@ export class PDFDocumentEngine {
       .join(' ')
       .trim();
 
-    // 2. Check if skills in the original document had bullets
+    // 2. Technical Skills: clean text lines
     this.detectedLayout.skillsHasBullets = skillsLines.some((l) => BULLET_START_REGEX.test(l.trim()));
+    this.data.skillsText = skillsLines.filter(Boolean).join('\n');
 
-    // 3. Technical Skills
-    this.data.skills = this._parseSkills(skillsLines);
-
-    // 4. Work Experience
-    this.data.experience = this._parseExperience(experienceLines);
-  }
-
-  _parseSkills(lines) {
-    if (!lines || lines.length === 0) return [];
-    const result = [];
-
-    for (const rawLine of lines) {
-      const clean = rawLine.trim();
-      if (!clean) continue;
-
-      const text = clean.replace(BULLET_START_REGEX, '').trim();
-      const colonIdx = text.indexOf(':');
-
-      if (colonIdx > 2 && colonIdx < 55) {
-        result.push({
-          category: text.substring(0, colonIdx).trim(),
-          skills: text.substring(colonIdx + 1).trim(),
-        });
-      } else if (result.length > 0 && !BULLET_START_REGEX.test(clean)) {
-        result[result.length - 1].skills += ' ' + clean;
-      } else if (text.length > 2) {
-        result.push({
-          category: 'Skills',
-          skills: text,
-        });
-      }
-    }
-
-    return result;
-  }
-
-  _parseExperience(lines) {
-    if (!lines || lines.length === 0) return [];
-    const experiences = [];
-    let current = null;
-
-    const DATE_REGEX = /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(?:\d{1,2},?\s*)?\d{4}\s*[-–—]\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(?:\d{1,2},?\s*)?)?(?:\d{4}|present)/i;
-
-    for (const rawLine of lines) {
-      const clean = rawLine.trim();
-      if (!clean) continue;
-
-      const isBullet = BULLET_START_REGEX.test(clean);
-      const dateMatch = clean.match(DATE_REGEX);
-      const hasPipe = clean.includes('|');
-
-      if (isBullet) {
-        if (!current) {
-          current = { title: 'Role', company: '', duration: '', bullets: [] };
-        }
-        current.bullets.push(clean.replace(BULLET_START_REGEX, '').trim());
-      } else {
-        const startsNewRole = (!current || current.bullets.length > 0) && (
-          Boolean(dateMatch) || hasPipe || this._isRoleTitle(clean)
-        );
-
-        if (startsNewRole) {
-          if (current) experiences.push(current);
-          if (dateMatch) {
-            const duration = dateMatch[0].trim();
-            const title = clean.replace(dateMatch[0], '').replace(/[-–—|]+$/, '').trim();
-            current = { title, company: '', duration, bullets: [] };
-          } else if (hasPipe) {
-            const parts = clean.split('|');
-            current = { title: parts[0].trim(), company: parts[1].trim(), duration: '', bullets: [] };
-          } else {
-            current = { title: clean, company: '', duration: '', bullets: [] };
-          }
-        } else if (current) {
-          if (dateMatch && !current.duration) {
-            current.duration = dateMatch[0].trim();
-            const remaining = clean.replace(dateMatch[0], '').replace(/[()]/g, '').trim();
-            if (remaining && !current.company) current.company = remaining;
-          } else if (!current.company && current.bullets.length === 0) {
-            current.company = clean;
-          } else if (current.bullets.length > 0) {
-            current.bullets[current.bullets.length - 1] += ' ' + clean;
-          }
-        }
-      }
-    }
-
-    if (current) experiences.push(current);
-
-    return experiences.map((e) => ({
-      ...e,
-      bullets: e.bullets.length > 0 ? e.bullets : [''],
-    }));
-  }
-
-  _isRoleTitle(str) {
-    if (str.length > 115) return false;
-    return Boolean(
-      str.match(/(intern|engineer|developer|analyst|associate|trainee|manager|lead|architect|consultant|coordinator|founder|specialist|assistant)/i) ||
-      str.match(/(software|frontend|backend|full[\s-]*stack|machine\s*learning|data\s*science|web\s*dev)/i)
-    );
-  }
-
-  _splitRoleCompany(str) {
-    const pipeMatch = str.match(/^(.+?)\s*[|]\s*(.+)$/);
-    if (pipeMatch) return { title: pipeMatch[1].trim(), company: pipeMatch[2].trim() };
-    const atMatch = str.match(/^(.+?)\s+at\s+(.+)$/i);
-    if (atMatch) return { title: atMatch[1].trim(), company: atMatch[2].trim() };
-    return { title: str, company: '' };
+    // 3. Work Experience: clean text lines
+    this.data.experienceText = experienceLines.filter(Boolean).join('\n');
   }
 
   _matchDate(str) {
@@ -571,21 +483,58 @@ export class PDFDocumentEngine {
       numPages: this.numPages,
       detectedLayout: { ...this.detectedLayout },
       objective: this.data.objective,
-      skills: JSON.parse(JSON.stringify(this.data.skills)),
-      experience: JSON.parse(JSON.stringify(this.data.experience)),
+      skillsText: this.data.skillsText,
+      experienceText: this.data.experienceText,
+      isModified: { ...this.isModified },
     };
   }
 
   updateObjective(text) {
     this.data.objective = text || '';
+    this.isModified.objective = true;
   }
 
+  updateSkillsText(text) {
+    this.data.skillsText = text || '';
+    this.isModified.skills = true;
+  }
+
+  updateExperienceText(text) {
+    this.data.experienceText = text || '';
+    this.isModified.experience = true;
+  }
+
+  // Backwards compatibility helpers
   updateSkills(skillsList) {
-    this.data.skills = skillsList || [];
+    if (Array.isArray(skillsList)) {
+      this.data.skillsText = skillsList
+        .map((s) => (s.category ? `${s.category}: ${s.skills}` : s.skills || ''))
+        .filter(Boolean)
+        .join('\n');
+    } else {
+      this.data.skillsText = String(skillsList || '');
+    }
+    this.isModified.skills = true;
   }
 
   updateExperience(expList) {
-    this.data.experience = expList || [];
+    if (Array.isArray(expList)) {
+      const lines = [];
+      for (const e of expList) {
+        if (e.title || e.company || e.duration) {
+          const header = [e.title, e.company, e.duration].filter(Boolean).join(' | ');
+          lines.push(header);
+        }
+        for (const b of e.bullets || []) {
+          if (b.trim()) lines.push(`• ${b.trim()}`);
+        }
+        lines.push('');
+      }
+      this.data.experienceText = lines.join('\n').trim();
+    } else {
+      this.data.experienceText = String(expList || '');
+    }
+    this.isModified.experience = true;
   }
 
   // ============================================================
@@ -596,88 +545,113 @@ export class PDFDocumentEngine {
    * Get exact line budget & space limit warning for any section
    */
   getSectionCapacity(sectionType) {
+    let totalMaxLines = 0;
+    let totalContentWidth = 800;
+
     for (const page of this.pagesData) {
       const box = page.boxes ? page.boxes[sectionType] : null;
       if (box && box.maskHeight > 0) {
         const fontSize = this.detectedLayout.fontSize;
         const lineHeight = fontSize * this.detectedLayout.lineHeight;
-        const maxLines = Math.floor((box.maskHeight - 4) / lineHeight);
-        const contentWidth = box.contentWidth;
-
-        let currentLines = 0;
-        const ctx = page.originalCanvas.getContext('2d');
-
-        if (sectionType === 'objective') {
-          const text = (this.data.objective || '').trim();
-          if (text) {
-            ctx.font = `normal ${Math.round(fontSize)}px ${this.detectedLayout.fontFamily}`;
-            currentLines = this._wrapText(ctx, text, contentWidth).length;
-          }
-        } else if (sectionType === 'skills') {
-          ctx.font = `bold ${Math.round(fontSize)}px ${this.detectedLayout.fontFamily}`;
-          for (const item of this.data.skills || []) {
-            const cat = (item.category || '').trim();
-            const sk = (item.skills || '').trim();
-            if (!cat && !sk) continue;
-            const catW = cat ? ctx.measureText(cat + ': ').width : 0;
-            ctx.font = `normal ${Math.round(fontSize)}px ${this.detectedLayout.fontFamily}`;
-            const wrapped = this._wrapText(ctx, sk, Math.max(100, contentWidth - catW - 16));
-            currentLines += Math.max(1, wrapped.length);
-            ctx.font = `bold ${Math.round(fontSize)}px ${this.detectedLayout.fontFamily}`;
-          }
-        } else if (sectionType === 'experience') {
-          const bulletIndent = 16 * this.scale;
-          for (const exp of this.data.experience || []) {
-            const hasHeader = Boolean(exp.title || exp.company || exp.duration);
-            if (hasHeader) {
-              currentLines += (exp.title && exp.company && !this.detectedLayout.hasRightAlignedDates) ? 2 : 1;
-            }
-            for (const b of exp.bullets || []) {
-              if (b.trim()) {
-                ctx.font = `normal ${Math.round(fontSize)}px ${this.detectedLayout.fontFamily}`;
-                const wrapped = this._wrapText(ctx, b.trim(), contentWidth - bulletIndent);
-                currentLines += Math.max(1, wrapped.length);
-              }
-            }
-          }
-        }
-
-        const isExceeded = currentLines > maxLines;
-        const excessLines = Math.max(0, currentLines - maxLines);
-        const excessWords = Math.round(excessLines * 12);
-        const percentUsed = maxLines > 0 ? Math.round((currentLines / maxLines) * 100) : 100;
-
-        return {
-          sectionType,
-          maxLines,
-          currentLines,
-          contentWidth,
-          isExceeded,
-          excessLines,
-          excessWords,
-          percentUsed,
-        };
+        const calculatedCapacity = Math.floor((box.maskHeight - 4) / lineHeight);
+        const boxMax = Math.max(calculatedCapacity, box.originalLinesCount || 0);
+        totalMaxLines += boxMax;
+        totalContentWidth = box.contentWidth;
+      }
+      if (sectionType === 'skills' && page.boxes && page.boxes.skills_continuation) {
+        const contBox = page.boxes.skills_continuation;
+        const fontSize = this.detectedLayout.fontSize;
+        const lineHeight = fontSize * this.detectedLayout.lineHeight;
+        const calculatedCapacity = Math.floor((contBox.maskHeight - 4) / lineHeight);
+        const contMax = Math.max(calculatedCapacity, contBox.originalLinesCount || 0);
+        totalMaxLines += contMax;
       }
     }
 
+    if (totalMaxLines === 0) totalMaxLines = 8;
+
+    let currentLines = 0;
+    const testCanvas = document.createElement('canvas');
+    const ctx = testCanvas.getContext('2d');
+    const fontSize = this.detectedLayout.fontSize;
+    const fontFamily = this.detectedLayout.fontFamily;
+
+    if (sectionType === 'objective') {
+      const text = (this.data.objective || '').trim();
+      if (text) {
+        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+        currentLines = this._wrapText(ctx, text, totalContentWidth).length;
+      }
+    } else if (sectionType === 'skills') {
+      const rawLines = (this.data.skillsText || '').split('\n').map((l) => l.trim()).filter(Boolean);
+      for (const line of rawLines) {
+        const hasBullet = BULLET_START_REGEX.test(line);
+        const textWithoutBullet = line.replace(BULLET_START_REGEX, '').trim();
+        const colonIdx = textWithoutBullet.indexOf(':');
+
+        if (colonIdx > 0 && colonIdx < 50) {
+          const cat = textWithoutBullet.substring(0, colonIdx + 1);
+          const rest = textWithoutBullet.substring(colonIdx + 1).trim();
+          ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
+          const catW = ctx.measureText(cat + ' ').width;
+          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+          const availW = Math.max(100, totalContentWidth - (hasBullet ? 16 : 0) - catW);
+          const wrapped = this._wrapText(ctx, rest, availW);
+          currentLines += Math.max(1, wrapped.length);
+        } else {
+          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+          const availW = hasBullet ? totalContentWidth - 16 : totalContentWidth;
+          const wrapped = this._wrapText(ctx, textWithoutBullet, availW);
+          currentLines += Math.max(1, wrapped.length);
+        }
+      }
+    } else if (sectionType === 'experience') {
+      const rawLines = (this.data.experienceText || '').split('\n');
+      for (const line of rawLines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          currentLines += 0.5;
+          continue;
+        }
+        if (BULLET_START_REGEX.test(trimmed)) {
+          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+          const bulletText = trimmed.replace(BULLET_START_REGEX, '').trim();
+          const wrapped = this._wrapText(ctx, bulletText, totalContentWidth - 18);
+          currentLines += Math.max(1, wrapped.length);
+        } else {
+          currentLines += 1;
+        }
+      }
+      currentLines = Math.round(currentLines);
+    }
+
+    // Only mark isExceeded if the section was modified by the user
+    const isMod = Boolean(this.isModified && this.isModified[sectionType]);
+    const isExceeded = isMod && currentLines > totalMaxLines;
+    const excessLines = isExceeded ? Math.max(0, currentLines - totalMaxLines) : 0;
+    const excessWords = Math.round(excessLines * 12);
+    const displayCurrentLines = isMod ? currentLines : Math.min(currentLines, totalMaxLines);
+    const percentUsed = totalMaxLines > 0 ? Math.min(isExceeded ? 150 : 100, Math.round((displayCurrentLines / totalMaxLines) * 100)) : 100;
+
     return {
       sectionType,
-      maxLines: 6,
-      currentLines: 0,
-      contentWidth: 800,
-      isExceeded: false,
-      excessLines: 0,
-      excessWords: 0,
-      percentUsed: 0,
+      maxLines: totalMaxLines,
+      currentLines: displayCurrentLines,
+      contentWidth: totalContentWidth,
+      isExceeded,
+      excessLines,
+      excessWords,
+      percentUsed,
     };
   }
 
   // ============================================================
-  // IN-PLACE RENDERING (100% VISUAL INTEGRITY & NO SHRINKING)
+  // IN-PLACE RENDERING (100% VISUAL INTEGRITY & DITTO FIDELITY)
   // ============================================================
 
   /**
    * Render all pages incorporating user edits with clean bounding-box replacement
+   * If a section has NOT been modified by the user, it remains 100% original PDF vector pixels!
    */
   async render() {
     this.renderedPages = [];
@@ -699,24 +673,24 @@ export class PDFDocumentEngine {
 
       const boxes = page.boxes || {};
 
-      // 1. Career Objective Box
-      if (boxes.objective) {
+      // 1. Career Objective Box: ONLY re-render if user actually modified it
+      if (this.isModified.objective && boxes.objective) {
         this._renderObjectiveBox(ctx, boxes.objective, this.data.objective);
       }
 
-      // 2. Experience Box
-      if (boxes.experience) {
-        this._renderExperienceBox(ctx, boxes.experience, this.data.experience);
+      // 2. Experience Box: ONLY re-render if user actually modified it
+      if (this.isModified.experience && boxes.experience) {
+        this._renderExperienceBox(ctx, boxes.experience, this.data.experienceText);
       }
 
-      // 3. Technical Skills Box
-      if (boxes.skills) {
-        this._renderSkillsBox(ctx, boxes.skills, this.data.skills, boxes.skills_continuation ? 'part1' : 'all');
-      }
-
-      // 4. Skills Continuation Box (if page 2 continues skills)
-      if (boxes.skills_continuation) {
-        this._renderSkillsBox(ctx, boxes.skills_continuation, this.data.skills, 'part2');
+      // 3. Technical Skills Box: ONLY re-render if user actually modified it
+      if (this.isModified.skills) {
+        if (boxes.skills) {
+          this._renderSkillsBox(ctx, boxes.skills, this.data.skillsText, boxes.skills_continuation ? 'part1' : 'all');
+        }
+        if (boxes.skills_continuation) {
+          this._renderSkillsBox(ctx, boxes.skills_continuation, this.data.skillsText, 'part2');
+        }
       }
 
       this.renderedPages.push(pageCanvas);
@@ -748,8 +722,7 @@ export class PDFDocumentEngine {
 
     let curY = box.maskTop + 2;
     for (let i = 0; i < lines.length; i++) {
-      // Prevent overflowing into the next section heading
-      if (curY + lineHeight > box.maskTop + box.maskHeight) {
+      if (curY + lineHeight > box.maskBottom) {
         this.overflowWarnings.push({
           section: 'Career Objective',
           clippedLines: lines.length - i,
@@ -761,14 +734,14 @@ export class PDFDocumentEngine {
     }
   }
 
-  _renderExperienceBox(ctx, box, expList) {
+  _renderExperienceBox(ctx, box, experienceText) {
     if (!box || box.maskHeight <= 0) return;
 
     // Clean white mask covering 100% of original experience area
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(box.maskLeft, box.maskTop, box.maskWidth, box.maskHeight);
 
-    if (!expList || expList.length === 0) return;
+    if (!experienceText || !experienceText.trim()) return;
 
     const fontSize = this.detectedLayout.fontSize;
     const lineHeight = fontSize * this.detectedLayout.lineHeight;
@@ -776,70 +749,36 @@ export class PDFDocumentEngine {
     const bulletIndent = 16 * this.scale;
     const hasRightDates = this.detectedLayout.hasRightAlignedDates;
 
+    const DATE_REGEX = /(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(?:\d{1,2},?\s*)?\d{4}|\d{4})\s*[-–—]\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(?:\d{1,2},?\s*)?\d{4}|\d{4}|present)/i;
+
     let curY = box.maskTop + 2;
+    const rawLines = experienceText.split('\n');
 
-    for (const exp of expList) {
-      const title = (exp.title || '').trim();
-      const company = (exp.company || '').trim();
-      const duration = (exp.duration || '').trim();
-      const bullets = exp.bullets || [];
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
 
-      if (!title && !company && bullets.length === 0) continue;
-      if (curY + lineHeight > box.maskTop + box.maskHeight) {
+    for (const rawLine of rawLines) {
+      const cleanLine = rawLine.trim();
+
+      if (!cleanLine) {
+        curY += 6;
+        continue;
+      }
+
+      if (curY + lineHeight > box.maskBottom) {
         this.overflowWarnings.push({ section: 'Experience', clipped: true });
         break;
       }
 
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-
-      if (hasRightDates && duration) {
-        // ATS / LaTeX style: Title left, Duration right
-        ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
-        ctx.fillStyle = this.detectedLayout.textColor;
-        ctx.fillText(title, box.contentLeft, curY);
-
-        ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
-        ctx.textAlign = 'right';
-        ctx.fillText(duration, box.contentLeft + box.contentWidth, curY);
-        ctx.textAlign = 'left';
-        curY += lineHeight;
-
-        if (company) {
-          ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
-          ctx.fillText(company, box.contentLeft, curY);
-          curY += lineHeight;
-        }
-      } else {
-        // Standard / Corporate style: Title | Company
-        ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
-        ctx.fillStyle = this.detectedLayout.textColor;
-        const titleText = title + (company ? ` | ${company}` : '');
-        ctx.fillText(titleText, box.contentLeft, curY);
-        curY += lineHeight;
-
-        if (duration) {
-          ctx.font = `italic ${Math.round(fontSize * 0.92)}px ${fontFamily}`;
-          ctx.fillText(duration, box.contentLeft, curY);
-          curY += lineHeight;
-        }
-      }
-
-      // Bullets
-      for (const bullet of bullets) {
-        const cleanBullet = (bullet || '').trim();
-        if (!cleanBullet) continue;
-        if (curY + lineHeight > box.maskTop + box.maskHeight) {
-          this.overflowWarnings.push({ section: 'Experience', clipped: true });
-          break;
-        }
-
+      if (BULLET_START_REGEX.test(cleanLine)) {
+        // Bullet point
+        const cleanBullet = cleanLine.replace(BULLET_START_REGEX, '').trim();
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
 
         const wrapped = this._wrapText(ctx, cleanBullet, box.contentWidth - bulletIndent);
         for (let i = 0; i < wrapped.length; i++) {
-          if (curY + lineHeight > box.maskTop + box.maskHeight) break;
+          if (curY + lineHeight > box.maskBottom) break;
 
           if (i === 0) {
             ctx.fillText('•', box.contentLeft + 2, curY);
@@ -847,74 +786,119 @@ export class PDFDocumentEngine {
           ctx.fillText(wrapped[i], box.contentLeft + bulletIndent, curY);
           curY += lineHeight;
         }
-      }
+      } else {
+        // Header line (Job title, Company, Dates)
+        const dateMatch = cleanLine.match(DATE_REGEX);
 
-      curY += 4; // Space between roles
+        if (hasRightDates && dateMatch) {
+          const dateStr = dateMatch[0].trim();
+          const titleStr = cleanLine.replace(dateMatch[0], '').replace(/[-–—|]+$/, '').trim();
+
+          ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
+          ctx.fillStyle = this.detectedLayout.textColor;
+          ctx.fillText(titleStr, box.contentLeft, curY);
+
+          ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
+          ctx.textAlign = 'right';
+          ctx.fillText(dateStr, box.contentLeft + box.contentWidth, curY);
+          ctx.textAlign = 'left';
+          curY += lineHeight;
+        } else if (hasRightDates && cleanLine.endsWith('Remote')) {
+          const mainPart = cleanLine.replace(/Remote$/, '').trim();
+          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+          ctx.fillStyle = this.detectedLayout.textColor;
+          ctx.fillText(mainPart, box.contentLeft, curY);
+
+          ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
+          ctx.textAlign = 'right';
+          ctx.fillText('Remote', box.contentLeft + box.contentWidth, curY);
+          ctx.textAlign = 'left';
+          curY += lineHeight;
+        } else {
+          // Standard title / company line
+          const isRole = this._isRoleTitle(cleanLine) || cleanLine.includes('|');
+          ctx.font = `${isRole ? 'bold' : 'normal'} ${Math.round(fontSize)}px ${fontFamily}`;
+          ctx.fillStyle = this.detectedLayout.textColor;
+          ctx.fillText(cleanLine, box.contentLeft, curY);
+          curY += lineHeight;
+        }
+      }
     }
   }
 
-  _renderSkillsBox(ctx, box, skillsList, mode = 'all') {
+  _isRoleTitle(str) {
+    if (str.length > 115) return false;
+    return Boolean(
+      str.match(/(intern|engineer|developer|analyst|associate|trainee|manager|lead|architect|consultant|coordinator|founder|specialist|assistant)/i) ||
+      str.match(/(software|frontend|backend|full[\s-]*stack|machine\s*learning|data\s*science|web\s*dev)/i)
+    );
+  }
+
+  _renderSkillsBox(ctx, box, skillsText, mode = 'all') {
     if (!box || box.maskHeight <= 0) return;
 
     // Clean white mask covering 100% of original skills area
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(box.maskLeft, box.maskTop, box.maskWidth, box.maskHeight);
 
-    if (!skillsList || skillsList.length === 0) return;
+    if (!skillsText || !skillsText.trim()) return;
 
-    let itemsToRender = skillsList;
+    const allLines = skillsText.split('\n').map((l) => l.trim()).filter(Boolean);
+    let itemsToRender = allLines;
     if (mode === 'part1') {
-      itemsToRender = skillsList.slice(0, 8);
+      itemsToRender = allLines.slice(0, 8);
     } else if (mode === 'part2') {
-      itemsToRender = skillsList.slice(8);
+      itemsToRender = allLines.slice(8);
     }
 
     const fontSize = this.detectedLayout.fontSize;
     const lineHeight = fontSize * this.detectedLayout.lineHeight;
     const fontFamily = this.detectedLayout.fontFamily;
-    const hasBullets = Boolean(this.detectedLayout.skillsHasBullets);
 
     let curY = box.maskTop + 2;
 
-    for (const item of itemsToRender) {
-      const category = (item.category || '').trim();
-      const skills = (item.skills || '').trim();
-      if (!category && !skills) continue;
-      if (curY + lineHeight > box.maskTop + box.maskHeight) {
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    for (const rawLine of itemsToRender) {
+      if (curY + lineHeight > box.maskBottom) {
         this.overflowWarnings.push({ section: 'Technical Skills', clipped: true });
         break;
       }
 
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-
+      const hasBullet = BULLET_START_REGEX.test(rawLine);
+      const textWithoutBullet = rawLine.replace(BULLET_START_REGEX, '').trim();
       let startX = box.contentLeft;
 
-      if (hasBullets) {
+      if (hasBullet) {
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
         ctx.fillText('•', box.contentLeft, curY);
         startX = box.contentLeft + 16;
       }
 
-      if (category) {
+      const colonIdx = textWithoutBullet.indexOf(':');
+
+      if (colonIdx > 0 && colonIdx < 55) {
+        const category = textWithoutBullet.substring(0, colonIdx + 1);
+        const rest = textWithoutBullet.substring(colonIdx + 1).trim();
+
         ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
-        const catText = category + ': ';
-        ctx.fillText(catText, startX, curY);
-        const catW = ctx.measureText(catText).width;
+        ctx.fillText(category, startX, curY);
+        const catW = ctx.measureText(category + ' ').width;
 
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-        const remainingWidth = Math.max(100, box.contentWidth - (startX - box.contentLeft) - catW);
-        const wrapped = this._wrapText(ctx, skills, remainingWidth);
+        const availW = Math.max(100, box.contentWidth - (startX - box.contentLeft) - catW);
+        const wrapped = this._wrapText(ctx, rest, availW);
 
         if (wrapped.length > 0) {
           ctx.fillText(wrapped[0], startX + catW, curY);
           curY += lineHeight;
 
           for (let i = 1; i < wrapped.length; i++) {
-            if (curY + lineHeight > box.maskTop + box.maskHeight) break;
-            ctx.fillText(wrapped[i], startX + (hasBullets ? 0 : catW), curY);
+            if (curY + lineHeight > box.maskBottom) break;
+            ctx.fillText(wrapped[i], startX + (hasBullet ? 0 : catW), curY);
             curY += lineHeight;
           }
         } else {
@@ -923,9 +907,9 @@ export class PDFDocumentEngine {
       } else {
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
-        const wrapped = this._wrapText(ctx, skills, box.contentWidth - (startX - box.contentLeft));
+        const wrapped = this._wrapText(ctx, textWithoutBullet, box.contentWidth - (startX - box.contentLeft));
         for (const line of wrapped) {
-          if (curY + lineHeight > box.maskTop + box.maskHeight) break;
+          if (curY + lineHeight > box.maskBottom) break;
           ctx.fillText(line, startX, curY);
           curY += lineHeight;
         }
