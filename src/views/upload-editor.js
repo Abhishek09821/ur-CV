@@ -1,5 +1,5 @@
 /**
- * Upload Editor View — Mobile-First Quick Editor for Any Resume Template
+ * Upload Editor View — Universal Quick Resume Editor for ANY Template
  *
  * Focuses strictly on:
  * 1. Career Objective / Summary
@@ -7,7 +7,8 @@
  * 3. Work Experience / Internships
  *
  * The original header, layout, styling, and static sections are preserved 100%.
- * Preview is hidden by default and shown on demand via the "Preview Resume" button.
+ * Features Live 1-Page Space Budget Gauges & Overflow Warnings.
+ * Preview is hidden by default and shown on demand via "Preview Resume".
  */
 
 export function renderUploadEditor({ engine, toast, onBack }) {
@@ -17,9 +18,71 @@ export function renderUploadEditor({ engine, toast, onBack }) {
   let currentData = engine.getData();
   let isPreviewOpen = false;
   let zoomLevel = 1.0;
-  let isRendering = false;
+
+  function getGlobalHealth() {
+    const objCap = engine.getSectionCapacity('objective');
+    const skillsCap = engine.getSectionCapacity('skills');
+    const expCap = engine.getSectionCapacity('experience');
+
+    const totalExcess = (objCap.excessLines || 0) + (skillsCap.excessLines || 0) + (expCap.excessLines || 0);
+    const anyExceeded = objCap.isExceeded || skillsCap.isExceeded || expCap.isExceeded;
+
+    return {
+      anyExceeded,
+      totalExcess,
+      objCap,
+      skillsCap,
+      expCap,
+    };
+  }
+
+  function renderSpaceGaugeHTML(sectionType) {
+    const cap = engine.getSectionCapacity(sectionType);
+    const isExceeded = cap.isExceeded;
+    const pct = Math.min(150, cap.percentUsed);
+
+    if (isExceeded) {
+      return `
+        <div class="space-limit-alert" id="gauge-${sectionType}">
+          <div class="space-alert-header">
+            <span class="space-alert-icon">⚠️</span>
+            <strong class="space-alert-title">Space Limit Exceeded (+${cap.excessLines} lines)</strong>
+            <span class="space-alert-badge">${cap.currentLines}/${cap.maxLines} lines (${cap.percentUsed}%)</span>
+          </div>
+          <div class="space-bar-track">
+            <div class="space-bar-fill exceeded" style="width: 100%"></div>
+          </div>
+          <p class="space-alert-desc">
+            In a 1-page resume, excess text will not fit in this section without spilling. Please shorten by ~${cap.excessWords} words or remove a bullet to maintain single-page layout.
+          </p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="space-limit-ok" id="gauge-${sectionType}">
+        <div class="flex items-center justify-between text-xs mb-xs">
+          <span class="flex items-center gap-xs font-bold" style="color: #15803d;">
+            <span>✓</span> Fits 1-page layout
+          </span>
+          <span class="font-bold" style="color: #4b5563;">
+            ${cap.currentLines} / ${cap.maxLines} lines used (${cap.percentUsed}%)
+          </span>
+        </div>
+        <div class="space-bar-track">
+          <div class="space-bar-fill ${pct > 85 ? 'warning' : 'ok'}" style="width: ${Math.min(100, pct)}%"></div>
+        </div>
+      </div>
+    `;
+  }
 
   function renderView() {
+    const health = getGlobalHealth();
+    const layout = currentData.detectedLayout || {};
+    const pageLabel = currentData.numPages === 1 ? '1-PAGE RESUME' : `${currentData.numPages}-PAGE RESUME`;
+    const fontLabel = layout.isSerif ? 'SERIF FONT' : 'SANS-SERIF FONT';
+    const formatLabel = layout.formatStyle === 'ats_latex' ? 'ATS FORMAT' : 'STANDARD FORMAT';
+
     container.innerHTML = `
       <!-- Editor Top Bar -->
       <div class="upload-editor-topbar">
@@ -31,7 +94,12 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             <span class="doc-title" title="${escapeHtml(currentData.fileName)}">
               📄 ${escapeHtml(currentData.fileName)}
             </span>
-            <span class="badge badge--green doc-badge">ORIGINAL FORMAT PRESERVED</span>
+            <span class="badge badge--black doc-badge">${pageLabel}</span>
+            <span class="badge badge--blue doc-badge">${formatLabel}</span>
+            <span class="badge badge--white doc-badge">${fontLabel}</span>
+            <span class="badge ${health.anyExceeded ? 'badge--red' : 'badge--green'} doc-badge" id="topbar-space-status">
+              ${health.anyExceeded ? `⚠️ EXCEEDS 1-PAGE LIMIT (+${health.totalExcess} LINES)` : '✓ FITS 1 PAGE CLEANLY'}
+            </span>
           </div>
         </div>
 
@@ -51,9 +119,9 @@ export function renderUploadEditor({ engine, toast, onBack }) {
           <div class="upload-editor-intro">
             <h2>Quick Resume Editor</h2>
             <p>
-              Your original resume layout and headers are protected. Edit your
+              Your original resume layout, fonts, header, and static sections are protected. Edit your
               <strong>Career Objective</strong>, <strong>Technical Skills</strong>, and <strong>Experience</strong>
-              below. Click <strong>Preview Resume</strong> anytime to inspect the live formatted document.
+              below. Live space limit gauges will warn you if content exceeds available 1-page space.
             </p>
           </div>
 
@@ -72,6 +140,11 @@ export function renderUploadEditor({ engine, toast, onBack }) {
               <p class="form-hint mb-xs">
                 Refine your professional career summary or objective for target roles.
               </p>
+
+              <div id="gauge-container-objective">
+                ${renderSpaceGaugeHTML('objective')}
+              </div>
+
               <textarea 
                 class="form-textarea input-objective" 
                 id="input-objective-text" 
@@ -96,6 +169,10 @@ export function renderUploadEditor({ engine, toast, onBack }) {
               <p class="form-hint mb-xs">
                 Organize your skills by domain (e.g. Programming, Web Dev, Tools, Cloud).
               </p>
+
+              <div id="gauge-container-skills">
+                ${renderSpaceGaugeHTML('skills')}
+              </div>
               
               <div class="skills-list" id="skills-items-container">
                 ${renderSkillsInputs(currentData.skills)}
@@ -122,8 +199,12 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             </div>
             <div class="section-card-body">
               <p class="form-hint mb-xs">
-                Edit job titles, companies, dates, and bullet points. Format and bullets will match your original resume style.
+                Edit job titles, companies, dates, and bullet points. Format and bullets match your original resume style.
               </p>
+
+              <div id="gauge-container-experience">
+                ${renderSpaceGaugeHTML('experience')}
+              </div>
 
               <div class="experience-list" id="exp-items-container">
                 ${renderExperienceInputs(currentData.experience)}
@@ -166,6 +247,8 @@ export function renderUploadEditor({ engine, toast, onBack }) {
               <button type="button" class="btn btn--sm btn--red" id="btn-close-preview" title="Close Preview">&times; Close</button>
             </div>
           </div>
+
+          <div id="modal-overflow-banner-slot"></div>
 
           <div class="preview-modal-viewport" id="preview-modal-viewport">
             <div class="preview-canvas-holder" id="preview-canvas-holder" style="transform: scale(${zoomLevel}); transform-origin: top center;">
@@ -353,6 +436,31 @@ export function renderUploadEditor({ engine, toast, onBack }) {
     });
     currentData.experience = newExp;
     engine.updateExperience(newExp);
+
+    updateGaugesInPlace();
+  }
+
+  function updateGaugesInPlace() {
+    const objHolder = container.querySelector('#gauge-container-objective');
+    if (objHolder) objHolder.innerHTML = renderSpaceGaugeHTML('objective');
+
+    const skillsHolder = container.querySelector('#gauge-container-skills');
+    if (skillsHolder) skillsHolder.innerHTML = renderSpaceGaugeHTML('skills');
+
+    const expHolder = container.querySelector('#gauge-container-experience');
+    if (expHolder) expHolder.innerHTML = renderSpaceGaugeHTML('experience');
+
+    const health = getGlobalHealth();
+    const statusBadge = container.querySelector('#topbar-space-status');
+    if (statusBadge) {
+      if (health.anyExceeded) {
+        statusBadge.className = 'badge badge--red doc-badge';
+        statusBadge.textContent = `⚠️ EXCEEDS 1-PAGE LIMIT (+${health.totalExcess} LINES)`;
+      } else {
+        statusBadge.className = 'badge badge--green doc-badge';
+        statusBadge.textContent = '✓ FITS 1 PAGE CLEANLY';
+      }
+    }
   }
 
   async function openPreview() {
@@ -361,6 +469,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
 
     const overlay = container.querySelector('#preview-modal-overlay');
     const holder = container.querySelector('#preview-canvas-holder');
+    const bannerSlot = container.querySelector('#modal-overflow-banner-slot');
     if (!overlay || !holder) return;
 
     overlay.classList.add('active');
@@ -381,6 +490,29 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         pageCard.appendChild(pageCanvas);
         holder.appendChild(pageCard);
       });
+
+      // Show overflow banner if warnings exist
+      if (bannerSlot) {
+        const health = getGlobalHealth();
+        if (health.anyExceeded) {
+          const exceededNames = [];
+          if (health.objCap.isExceeded) exceededNames.push(`Objective (+${health.objCap.excessLines} lines)`);
+          if (health.skillsCap.isExceeded) exceededNames.push(`Skills (+${health.skillsCap.excessLines} lines)`);
+          if (health.expCap.isExceeded) exceededNames.push(`Experience (+${health.expCap.excessLines} lines)`);
+
+          bannerSlot.innerHTML = `
+            <div class="preview-overflow-banner">
+              <span>⚠️</span>
+              <div>
+                <strong>1-Page Space Limit Warning:</strong> Content in <em>${exceededNames.join(', ')}</em> exceeds available space.
+                Text was protected to prevent overlapping next sections. Please trim in the editor to make all text fit cleanly.
+              </div>
+            </div>
+          `;
+        } else {
+          bannerSlot.innerHTML = '';
+        }
+      }
     } catch (err) {
       console.error('Preview render error:', err);
       holder.innerHTML = `<div class="preview-error">Failed to render preview: ${escapeHtml(err.message)}</div>`;
@@ -395,6 +527,15 @@ export function renderUploadEditor({ engine, toast, onBack }) {
 
   async function handleDownloadPDF() {
     syncDataFromInputs();
+    const health = getGlobalHealth();
+
+    if (health.anyExceeded) {
+      const proceed = confirm(
+        `Warning: Your edits exceed the 1-page section limit by ~${health.totalExcess} lines. To prevent overlapping headings, excess lines have been clipped. Do you want to download now anyway?`
+      );
+      if (!proceed) return;
+    }
+
     if (toast) toast.show('Compiling high-quality PDF with preserved template...', 'info');
 
     try {
@@ -440,12 +581,13 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       if (zoomText) zoomText.textContent = `${Math.round(zoomLevel * 100)}%`;
     });
 
-    // Objective char count
+    // Objective char count & dynamic gauge update
     const objTextarea = container.querySelector('#input-objective-text');
     const objCount = container.querySelector('#obj-char-count');
-    if (objTextarea && objCount) {
+    if (objTextarea) {
       objTextarea.addEventListener('input', () => {
-        objCount.textContent = `${objTextarea.value.length} chars`;
+        if (objCount) objCount.textContent = `${objTextarea.value.length} chars`;
+        syncDataFromInputs();
       });
     }
 
@@ -460,6 +602,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       }
       const countEl = container.querySelector('#skills-cat-count');
       if (countEl) countEl.textContent = `${currentData.skills.length} categories`;
+      updateGaugesInPlace();
     });
 
     // Add Experience Role
@@ -478,12 +621,20 @@ export function renderUploadEditor({ engine, toast, onBack }) {
       }
       const countEl = container.querySelector('#exp-role-count');
       if (countEl) countEl.textContent = `${currentData.experience.length} roles`;
+      updateGaugesInPlace();
     });
 
     attachDynamicEvents();
   }
 
   function attachDynamicEvents() {
+    // Listen to changes on all inputs inside dynamic lists
+    container.querySelectorAll('.skills-list input, .skills-list textarea, .experience-list input, .experience-list textarea').forEach((el) => {
+      el.oninput = () => {
+        syncDataFromInputs();
+      };
+    });
+
     // Remove skill category
     container.querySelectorAll('.btn-remove-skill-category').forEach((btn) => {
       btn.onclick = () => {
@@ -497,6 +648,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         }
         const countEl = container.querySelector('#skills-cat-count');
         if (countEl) countEl.textContent = `${currentData.skills.length} categories`;
+        updateGaugesInPlace();
       };
     });
 
@@ -513,6 +665,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
         }
         const countEl = container.querySelector('#exp-role-count');
         if (countEl) countEl.textContent = `${currentData.experience.length} roles`;
+        updateGaugesInPlace();
       };
     });
 
@@ -529,6 +682,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             expContainer.innerHTML = renderExperienceInputs(currentData.experience);
             attachDynamicEvents();
           }
+          updateGaugesInPlace();
         }
       };
     });
@@ -546,6 +700,7 @@ export function renderUploadEditor({ engine, toast, onBack }) {
             expContainer.innerHTML = renderExperienceInputs(currentData.experience);
             attachDynamicEvents();
           }
+          updateGaugesInPlace();
         }
       };
     });

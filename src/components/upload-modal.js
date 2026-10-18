@@ -66,6 +66,29 @@ export function openUploadModal({ toast, onComplete }) {
         }
       });
     }
+
+    // Sample resume buttons
+    overlay.querySelector('#btn-demo-jake')?.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/Abhishek-Tiwari-Resume.pdf');
+        const blob = await res.blob();
+        const file = new File([blob], 'Abhishek-Tiwari-Resume.pdf', { type: 'application/pdf' });
+        await processSelectedFile(file);
+      } catch (e) {
+        console.error('Failed to load sample Jake resume:', e);
+      }
+    });
+
+    overlay.querySelector('#btn-demo-amity')?.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/Abhishek_Tiwari_Resume_Updated.pdf');
+        const blob = await res.blob();
+        const file = new File([blob], 'Abhishek_Tiwari_Resume_Updated.pdf', { type: 'application/pdf' });
+        await processSelectedFile(file);
+      } catch (e) {
+        console.error('Failed to load sample Amity resume:', e);
+      }
+    });
   }
 
   async function processSelectedFile(file) {
@@ -182,6 +205,15 @@ function buildModalHTML(uploadedFile, isParsing, statusMessage) {
               Select PDF File
               <input type="file" id="resume-file-input" accept=".pdf,application/pdf" style="display:none;" />
             </label>
+
+            <div class="mt-sm flex gap-xs justify-center flex-wrap">
+              <button type="button" class="btn btn--xs btn--white" id="btn-demo-jake">
+                Try Sample: Jake's ATS Resume
+              </button>
+              <button type="button" class="btn btn--xs btn--white" id="btn-demo-amity">
+                Try Sample: Amity Placement CV
+              </button>
+            </div>
           </div>
 
           <div class="upload-feature-highlights mt-md">
