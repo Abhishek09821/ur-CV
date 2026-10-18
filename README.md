@@ -1,124 +1,89 @@
+<div align="center">
+
 # ur-CV
 
-A lightweight, client-side resume builder and universal PDF editor designed for official Amity University placement drives and Jake's ATS software engineer standards.
+**Mobile-First Client-Side Resume Builder & Universal In-Place PDF Editor**
 
-ur-CV runs entirely in the browser with zero server data retention. It allows students and engineers to either generate verified placement resumes from scratch or upload and edit existing PDF resumes directly on desktop and mobile without breaking original layouts, fonts, or headers.
+[![Live App](https://img.shields.io/badge/Live_App-ur--cv.netlify.app-00DC82?style=for-the-badge&logo=netlify&logoColor=white)](https://ur-cv.netlify.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-FACC15?style=for-the-badge)](LICENSE)
+[![Mobile Optimized](https://img.shields.io/badge/Mobile-First_Architecture-3B82F6?style=for-the-badge)](https://ur-cv.netlify.app/)
+[![Client-Side Privacy](https://img.shields.io/badge/Privacy-100%25_Client--Side-10B981?style=for-the-badge)](https://ur-cv.netlify.app/)
 
----
+**[Launch Live Application &rarr; https://ur-cv.netlify.app](https://ur-cv.netlify.app/)**
 
-## Screenshots
-
-### 1. Landing Gateway
-![Landing Page](docs/screenshots/landing.png)
-
-### 2. Live Resume Builder (Amity & Jake's ATS Formats)
-![Resume Builder](docs/screenshots/builder.png)
-
-### 3. Template Switcher
-![Template Picker](docs/screenshots/format_picker.png)
-
-### 4. Universal PDF Quick Editor
-![Universal PDF Quick Editor](docs/screenshots/upload_editor.png)
+</div>
 
 ---
 
-## Core Features
+## Overview
 
-- **Official Amity University Placement Format**: Includes approved university shield logo, candidate passport photo box, charcoal section headers, academic table, and mandatory self-declaration.
-- **Jake's ATS Resume Standard**: Overleaf / LaTeX software engineering layout optimized for ATS scanning with clean 1px section rules, right-aligned dates, and bullet hierarchies.
-- **Universal PDF In-Place Editor**: Upload any existing PDF resume (Canva, Word, LaTeX, Amity). Selectively edit Career Objective, Technical Skills, and Work Experience while preserving original vector headers, contact details, fonts, and bounding boxes.
-- **Real-Time Space Gauges**: Dynamic line-capacity meters calculate section boundaries and alert you before text exceeds page limits or causes overflow.
-- **Client-Side Vector PDF Export**: Generates 100% searchable, crisp vector PDFs directly in the browser using jsPDF and PDF.js without third-party server processing.
-- **Mobile Responsive**: Fully optimized for mobile screens with touch-friendly step navigation, photo compressor, and zoomable sheet previews.
+**ur-CV** is an open-source, client-side resume application built specifically for editing, creating, and exporting verified resumes **directly from mobile devices on the go**.
 
----
+Running entirely in the browser without server dependencies or data retention, ur-CV provides two mobile workflows:
 
-## Tech Stack
-
-- **Core**: Vanilla JavaScript (ES Modules), HTML5
-- **Styling**: Vanilla CSS (Neo-Brutalist Design System)
-- **PDF Engine**: `pdfjs-dist` (Text extraction & layout detection), `jspdf` (Vector PDF compilation), `html2pdf.js`
-- **Build Tool**: Vite 6
+1. **Universal PDF Quick Editor**: Upload any existing PDF resume (LaTeX, Canva, Word, Amity). Selectively edit your Career Objective, Technical Skills, and Work Experience from your phone while preserving original fonts, headers, photos, and vector formatting without layout shifts.
+2. **Placement & ATS Resume Builder**: Create standardized placement resumes using step-by-step mobile forms for the approved **Amity University Placement CV** and **Jake's ATS Software Engineering Standard**.
 
 ---
 
-## Getting Started
+## Interface Gallery
 
-### Prerequisites
+<details open>
+<summary><b>Click to expand or collapse application screenshots</b></summary>
+<br>
 
-- Node.js (v18 or higher)
-- npm
+| Landing Gateway | Split Live Builder |
+| :---: | :---: |
+| <img src="docs/screenshots/landing.png" width="460" alt="Landing Gateway" /> | <img src="docs/screenshots/builder.png" width="460" alt="Live Resume Builder" /> |
 
-### Installation
+| Universal PDF Mobile Editor | Template Switcher |
+| :---: | :---: |
+| <img src="docs/screenshots/upload_editor.png" width="460" alt="Universal PDF Editor" /> | <img src="docs/screenshots/format_picker.png" width="460" alt="Template Switcher" /> |
+
+</details>
+
+---
+
+## Key Features
+
+- **Mobile-First In-Place PDF Editing**: Modify key sections (Objective, Skills, Experience) on your phone while protecting original headers, bounding boxes, and document styling.
+- **Real-Time Space Gauges**: Dynamic line meters calculate available physical space on the page and warn before content exceeds limits.
+- **Official Placement & ATS Standards**: Pre-configured formats for Amity University (shield logo, passport box, declaration) and Jake's ATS LaTeX engineering standard.
+- **Client-Side Vector PDF Export**: Compiles clean, searchable vector PDFs directly in-browser using jsPDF. Zero data sent to external servers.
+- **Integrated Utilities**: In-browser passport photo compressor (under 1MB for placement portals) and responsive zoomable preview modal.
+
+---
+
+## Quick Start
 
 ```bash
+# Clone the repository
 git clone https://github.com/Abhishek09821/ur-CV.git
 cd ur-CV
+
+# Install dependencies and launch
 npm install
-```
-
-### Development Server
-
-Start the local Vite development server:
-
-```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173` in your browser.
-
-### Production Build
-
-Create an optimized production bundle in the `dist` directory:
+Build for production:
 
 ```bash
 npm run build
 ```
 
-Preview the production build locally:
+---
 
-```bash
-npm run preview
-```
+## Tech Stack
+
+- **Frontend**: Vanilla JavaScript (ES Modules), HTML5, Neo-Brutalist CSS
+- **PDF Engine**: PDF.js (text extraction & geometry), jsPDF (vector compilation)
+- **Deployment & Tooling**: Vite 6, Netlify
 
 ---
 
-## Project Structure
+## License & Author
 
-```text
-ur-CV/
-├── docs/
-│   └── screenshots/         # Documentation screenshots
-├── public/                  # Static assets and PDF sample resumes
-├── src/
-│   ├── assets/              # University logos and graphics
-│   ├── components/          # Modals, upload dropzone, toast, preview overlays
-│   ├── styles/              # Neo-brutalist CSS design system
-│   ├── utils/               # PDF document engine, vector PDF generator
-│   ├── views/               # Landing gateway, split builder, upload editor
-│   ├── main.js              # Application entry point & router
-│   └── store.js             # LocalStorage state management
-├── index.html
-├── package.json
-└── vite.config.js
-```
-
----
-
-## Privacy & Security
-
-All document parsing, image compression, draft caching, and PDF generation happen 100% client-side inside the user's browser. No resumes, contact information, or personal data are ever transmitted to or stored on external servers.
-
----
-
-## License
-
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
----
-
-## Developer
-
-Developed by **Abhishek Tiwari**  
-- LinkedIn: [https://www.linkedin.com/in/abhishek-tiwari-3a3594300](https://www.linkedin.com/in/abhishek-tiwari-3a3594300)  
-- GitHub: [https://github.com/Abhishek09821](https://github.com/Abhishek09821)
+- **Live Application**: [https://ur-cv.netlify.app/](https://ur-cv.netlify.app/)
+- **Author**: [Abhishek Tiwari](https://www.linkedin.com/in/abhishek-tiwari-3a3594300) &middot; [GitHub](https://github.com/Abhishek09821)
+- **License**: MIT
