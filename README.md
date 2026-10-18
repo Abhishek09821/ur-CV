@@ -2,14 +2,12 @@
 
 # ur-CV
 
-**Mobile-First Client-Side Resume Builder & Universal In-Place PDF Editor**
+**Edit-your-resume-in-your-mobile-and-you-can-build-it-also**
 
 [![Live App](https://img.shields.io/badge/Live_App-ur--cv.netlify.app-00DC82?style=for-the-badge&logo=netlify&logoColor=white)](https://ur-cv.netlify.app/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-FACC15?style=for-the-badge)](LICENSE)
 [![Mobile Optimized](https://img.shields.io/badge/Mobile-First_Architecture-3B82F6?style=for-the-badge)](https://ur-cv.netlify.app/)
-[![Client-Side Privacy](https://img.shields.io/badge/Privacy-100%25_Client--Side-10B981?style=for-the-badge)](https://ur-cv.netlify.app/)
 
-**[Launch Live Application &rarr; https://ur-cv.netlify.app](https://ur-cv.netlify.app/)**
+**[Open Source](https://ur-cv.netlify.app/)**
 
 </div>
 
