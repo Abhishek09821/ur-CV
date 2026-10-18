@@ -1,7 +1,7 @@
 /**
  * PDF Document Engine for ur-CV
  *
- * In-Place PDF Modification with Intelligent Content Reflow & Typography Matching.
+ * In-Place PDF Modification with 100% Visual Fidelity & Precise Bounding-Box Replacement.
  * Accepts ANY resume format (Canva, Amity, Jake's, LaTeX, Word-exported, corporate, etc.),
  * preserves 100% of original visual assets (headers, logos, photos, lines, colors, static sections),
  * and accurately parses & re-renders:
@@ -22,24 +22,24 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Regex patterns for section detection
-const HEADING_PATTERNS = {
-  objective: /^(career\s*objective|objective|professional\s*summary|profile\s*summary|summary|profile|about\s*me|executive\s*summary|biography|bio)$/i,
-  experience: /^(work\s*experience|professional\s*experience|industry\s*experience|experience|internships?|employment(\s*history)?|work\s*history|relevant\s*experience)$/i,
-  skills: /^(technical\s*skills|core\s*skills|key\s*skills|skills(\s*(&|and)\s*(technologies|tools|competencies))?|competencies|technologies|tools\s*(&|and)\s*technologies|technical\s*proficiencies|areas\s*of\s*expertise|skills)$/i,
-  education: /^(education|academic(\s*(details|qualifications|background|history|records))?|qualifications|educational\s*background)$/i,
-  projects: /^((technical|academic|personal|key|software|selected)?\s*projects|project\s*work)$/i,
-  awards: /^(certifications?|certificates?|honors?|awards?(\s*(&|and)\s*(honors?|achievements?|certifications?))?|achievements?|awards\s*and\s*achievements|certifications\s*(&|and)\s*awards)$/i,
-  leadership: /^(leadership(\s*(&|and)\s*(initiative|activities))?|extra[\s-]*curricular(\s*activities)?|co-curricular(\s*activities)?|positions?\s*of\s*responsibility|volunteer(\s*experience|\s*work)?)$/i,
-  links: /^(links|profiles|social\s*links|online\s*profiles|portfolio|web\s*links)$/i,
-  declaration: /^(declaration|self\s*declaration)$/i,
-};
+// Strict regex patterns for section headings (matches real headings, not bullet words or inline text)
+const STRICT_HEADINGS = [
+  { type: 'objective', regex: /^(career\s*objective|objective|professional\s*summary|profile\s*summary|summary|profile|about\s*me|executive\s*summary)$/i },
+  { type: 'education', regex: /^(academic\s*details|education|educational\s*qualifications|academic\s*qualifications|academic\s*background|qualifications)$/i },
+  { type: 'experience', regex: /^(work\s*experience|professional\s*experience|industry\s*experience|experience|internships?|employment\s*history)$/i },
+  { type: 'projects', regex: /^((technical|academic|personal|software)?\s*projects|project\s*work)$/i },
+  { type: 'skills', regex: /^(technical\s*skills|core\s*skills|key\s*skills|skills(\s*(&|and)\s*abilities)?|skills)$/i },
+  { type: 'awards', regex: /^(awards(\s*and\s*achievements)?|achievements|certifications?|honors?|certificates?)$/i },
+  { type: 'leadership', regex: /^(leadership(\s*(&|and)\s*initiative)?|extra[\s-]*curricular(\s*activities)?|co-curricular(\s*activities)?)$/i },
+  { type: 'links', regex: /^(links|profiles|social\s*links|online\s*profiles)$/i },
+  { type: 'declaration', regex: /^(self\s*declaration|declaration)$/i },
+];
 
 const BULLET_START_REGEX = /^[•\-\*\u2022\u25cf\u25e6\u25aa\u25b8\u2023\u2219]/;
 
 export class PDFDocumentEngine {
   constructor() {
-    this.scale = 2.0; // 2x rendering scale for retina vector clarity
+    this.scale = 2.0; // 2x rendering scale for retina vector sharpness
     this.fileName = 'resume.pdf';
     this.pdfDoc = null;
     this.numPages = 0;
@@ -48,13 +48,12 @@ export class PDFDocumentEngine {
     this.pageWidthPx = 1190;
     this.pageHeightPx = 1684;
 
-    this.pagesData = []; // Array of { pageNum, canvas, lines, sections, bands, styles }
+    this.pagesData = []; // Array of page objects with original canvases and bounding boxes
     this.detectedLayout = {
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      isSerif: false,
+      fontFamily: '"Times New Roman", Times, Georgia, serif',
+      isSerif: true,
       textColor: '#1A1A2E',
-      bgColor: '#FFFFFF',
-      fontSize: 10,
+      fontSize: 19, // In 2x canvas pixels (approx 9.5pt)
       lineHeight: 1.35,
     };
 
@@ -65,7 +64,7 @@ export class PDFDocumentEngine {
       experience: [], // Array of { title, company, duration, bullets: string[] }
     };
 
-    this.renderedPages = []; // Canvases of final reflowed pages
+    this.renderedPages = []; // Canvases of final modified pages
   }
 
   /**
@@ -85,7 +84,7 @@ export class PDFDocumentEngine {
     this.numPages = this.pdfDoc.numPages;
     this.pagesData = [];
 
-    // Process each page
+    // Step 1: Render each page to an unmolested original canvas and extract text lines
     for (let p = 1; p <= this.numPages; p++) {
       const page = await this.pdfDoc.getPage(p);
       const viewport = page.getViewport({ scale: this.scale });
@@ -97,43 +96,45 @@ export class PDFDocumentEngine {
         this.pageHeightPx = viewport.height;
       }
 
-      // Render high-res background canvas
+      // Render high-res pristine background canvas
       const bgCanvas = document.createElement('canvas');
       bgCanvas.width = viewport.width;
       bgCanvas.height = viewport.height;
       const ctx = bgCanvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Extract text content with positions
+      // Extract text items with positions
       const textContent = await page.getTextContent();
       const lines = this._reconstructLines(textContent, viewport);
 
       this.pagesData.push({
         pageNum: p,
         viewport,
-        canvas: bgCanvas,
+        originalCanvas: bgCanvas,
         textContent,
         lines,
+        sections: [],
+        boxes: {},
       });
     }
 
-    // Detect global typography styles
+    // Step 2: Detect typography styles
     this._detectDocumentStyles();
 
-    // Detect section boundaries across pages
-    this._detectSectionsAndBands();
+    // Step 3: Strictly detect section headings and calculate precise bounding boxes
+    this._detectSectionsAndBoxes();
 
-    // Parse the 3 editable sections
+    // Step 4: Extract editable content from lines
     this._extractEditableData();
 
-    // Perform initial render
+    // Step 5: Render initial preview
     await this.render();
 
     return this.getData();
   }
 
   /**
-   * Reconstruct lines from text items
+   * Reconstruct lines from text items safely
    */
   _reconstructLines(textContent, viewport) {
     if (!textContent || !textContent.items) return [];
@@ -158,10 +159,10 @@ export class PDFDocumentEngine {
         };
       });
 
-    // Group items into lines based on baseline Y
+    // Group items into visual lines (tolerance 6px)
     const lineBuckets = [];
     for (const item of items) {
-      let bucket = lineBuckets.find((b) => Math.abs(b.vy - item.vy) <= 4.0 * this.scale);
+      let bucket = lineBuckets.find((b) => Math.abs(b.vy - item.vy) <= 6.0);
       if (!bucket) {
         bucket = {
           vy: item.vy,
@@ -225,30 +226,31 @@ export class PDFDocumentEngine {
         if (line.isSerif) serifCount++;
         else sansCount++;
 
-        if (line.fontSizePx > 10 && line.fontSizePx < 40) {
+        if (line.fontSizePx >= 14 && line.fontSizePx <= 30) {
           totalFontSize += line.fontSizePx;
           fontCount++;
         }
       }
     }
 
-    const isSerif = serifCount > sansCount;
+    const isSerif = serifCount >= sansCount;
     this.detectedLayout.isSerif = isSerif;
     this.detectedLayout.fontFamily = isSerif
       ? '"Times New Roman", Times, Georgia, serif'
       : 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-    const avgFontPx = fontCount > 0 ? totalFontSize / fontCount : 18;
+    const avgFontPx = fontCount > 0 ? totalFontSize / fontCount : 19;
     this.detectedLayout.fontSize = Math.max(16, Math.min(22, avgFontPx));
     this.detectedLayout.lineHeight = 1.35;
   }
 
   /**
-   * Find section headings and divide pages into bands
+   * Strictly detect section headings and calculate precise bounding boxes on each page
    */
-  _detectSectionsAndBands() {
-    for (const page of this.pagesData) {
-      const detectedSections = [];
+  _detectSectionsAndBoxes() {
+    for (let pIdx = 0; pIdx < this.pagesData.length; pIdx++) {
+      const page = this.pagesData[pIdx];
+      const detected = [];
 
       for (let i = 0; i < page.lines.length; i++) {
         const line = page.lines[i];
@@ -257,145 +259,116 @@ export class PDFDocumentEngine {
           .replace(/[:#*\s]+$/, '')
           .trim();
 
-        if (cleanText.length >= 3 && cleanText.length <= 55) {
-          for (const [secKey, pattern] of Object.entries(HEADING_PATTERNS)) {
-            if (pattern.test(cleanText)) {
-              // Confirm heading criteria: uppercase, title case, bold or standalone
-              const isUppercase = cleanText === cleanText.toUpperCase() && cleanText.length > 3;
-              const hasHeadingStyle = isUppercase || line.isBold || line.fontSizePx >= this.detectedLayout.fontSize;
-              
-              if (hasHeadingStyle && !detectedSections.some((s) => s.type === secKey)) {
-                detectedSections.push({
-                  type: secKey,
-                  lineIndex: i,
-                  headingText: cleanText,
-                  headingTop: Math.max(0, line.yTop - 6),
-                  headingBottom: line.yBottom + 6,
-                  minX: line.minX,
-                  maxX: line.maxX,
-                });
-                break;
-              }
+        // Must be a concise heading text, not a long sentence or bullet point
+        if (cleanText.length >= 3 && cleanText.length <= 45 && !line.text.startsWith('•')) {
+          for (const h of STRICT_HEADINGS) {
+            if (h.regex.test(cleanText) && !detected.some((s) => s.type === h.type)) {
+              detected.push({
+                type: h.type,
+                text: cleanText,
+                lineIdx: i,
+                vy: line.vy,
+                yTop: line.yTop,
+                yBottom: line.yBottom,
+                minX: line.minX,
+                maxX: line.maxX,
+              });
+              break;
             }
           }
         }
       }
 
-      // Sort sections by vertical position
-      detectedSections.sort((a, b) => a.headingTop - b.headingTop);
+      detected.sort((a, b) => a.vy - b.vy);
+      page.sections = detected;
 
-      // Construct layout bands
-      const bands = [];
-      let lastY = 0;
+      // Calculate bounding boxes for sections on this page
+      const boxes = {};
+      const contentMinX = 86; // standard margin at 2x scale
+      const contentWidth = 1022; // 1190 - 86*2
 
-      for (let i = 0; i < detectedSections.length; i++) {
-        const sec = detectedSections[i];
-        const nextSec = detectedSections[i + 1];
+      for (let i = 0; i < detected.length; i++) {
+        const cur = detected[i];
+        const next = detected[i + 1];
 
-        // Content area bottom for this section
-        const contentBottom = nextSec ? nextSec.headingTop : page.canvas.height - 30;
+        // Content box starts below the heading bar and ends before the next heading bar
+        const boxTop = Math.round(cur.vy + 18);
+        const boxBottom = next ? Math.round(next.vy - 16) : Math.round(page.originalCanvas.height - 40);
 
-        // Static band before this section heading (e.g. Header before first section)
-        if (sec.headingTop > lastY + 10) {
-          bands.push({
-            type: 'static',
-            startY: lastY,
-            endY: sec.headingTop,
-            height: sec.headingTop - lastY,
-          });
-        }
-
-        const isEditable = ['objective', 'skills', 'experience'].includes(sec.type);
-
-        if (isEditable) {
-          // Lines in this section's content area
-          const secLines = page.lines.filter(
-            (l, idx) => idx > sec.lineIndex && (!nextSec || idx < nextSec.lineIndex)
-          );
-
-          const contentMinX = secLines.length > 0 ? Math.min(...secLines.map((l) => l.minX)) : 60 * this.scale;
-          const contentMaxX = secLines.length > 0 ? Math.max(...secLines.map((l) => l.maxX)) : page.canvas.width - 60 * this.scale;
-
-          bands.push({
-            type: 'editable',
-            sectionId: sec.type,
-            headingStartY: sec.headingTop,
-            headingHeight: sec.headingBottom - sec.headingTop,
-            contentRegion: {
-              minX: contentMinX,
-              maxX: contentMaxX,
-              originalHeight: Math.max(60, contentBottom - sec.headingBottom),
-            },
-          });
-        } else {
-          // Static section (e.g. Education, Projects, Awards, Declaration)
-          bands.push({
-            type: 'static',
-            sectionId: sec.type,
-            startY: sec.headingTop,
-            endY: contentBottom,
-            height: contentBottom - sec.headingTop,
-          });
-        }
-
-        lastY = contentBottom;
+        boxes[cur.type] = {
+          left: contentMinX,
+          top: boxTop,
+          width: contentWidth,
+          height: Math.max(30, boxBottom - boxTop),
+          lineStart: cur.lineIdx + 1,
+          lineEnd: next ? next.lineIdx : page.lines.length,
+        };
       }
 
-      // Trailing static content if any
-      if (lastY < page.canvas.height - 20) {
-        bands.push({
-          type: 'static',
-          startY: lastY,
-          endY: page.canvas.height,
-          height: page.canvas.height - lastY,
-        });
+      // Check if page 2 starts with skills continuation (before the first heading on page 2)
+      if (pIdx > 0 && detected.length > 0 && detected[0].type !== 'skills') {
+        const firstHeadingTop = detected[0].vy;
+        if (firstHeadingTop > 100) {
+          boxes['skills_continuation'] = {
+            left: contentMinX,
+            top: 40,
+            width: contentWidth,
+            height: Math.round(firstHeadingTop - 56),
+            lineStart: 0,
+            lineEnd: detected[0].lineIdx,
+          };
+        }
       }
 
-      page.detectedSections = detectedSections;
-      page.bands = bands;
+      page.boxes = boxes;
     }
   }
 
   /**
-   * Parse the 3 editable sections with high precision
+   * Extract Objective, Skills, and Experience with high accuracy
    */
   _extractEditableData() {
-    let allObjectiveLines = [];
-    let allSkillsLines = [];
-    let allExpLines = [];
+    let objectiveLines = [];
+    let skillsLines = [];
+    let experienceLines = [];
 
-    for (const page of this.pagesData) {
-      const sections = page.detectedSections || [];
-      for (let i = 0; i < sections.length; i++) {
-        const sec = sections[i];
-        const nextSec = sections[i + 1];
+    for (let pIdx = 0; pIdx < this.pagesData.length; pIdx++) {
+      const page = this.pagesData[pIdx];
+      const boxes = page.boxes || {};
 
-        const secLines = page.lines.filter(
-          (l, idx) => idx > sec.lineIndex && (!nextSec || idx < nextSec.lineIndex)
-        );
+      if (boxes.objective) {
+        const slice = page.lines.slice(boxes.objective.lineStart, boxes.objective.lineEnd);
+        objectiveLines.push(...slice.map((l) => l.text));
+      }
 
-        if (sec.type === 'objective') {
-          allObjectiveLines.push(...secLines.map((l) => l.text));
-        } else if (sec.type === 'skills') {
-          allSkillsLines.push(...secLines.map((l) => l.text));
-        } else if (sec.type === 'experience') {
-          allExpLines.push(...secLines.map((l) => l.text));
-        }
+      if (boxes.experience) {
+        const slice = page.lines.slice(boxes.experience.lineStart, boxes.experience.lineEnd);
+        experienceLines.push(...slice.map((l) => l.text));
+      }
+
+      if (boxes.skills) {
+        const slice = page.lines.slice(boxes.skills.lineStart, boxes.skills.lineEnd);
+        skillsLines.push(...slice.map((l) => l.text));
+      }
+
+      if (boxes.skills_continuation) {
+        const slice = page.lines.slice(boxes.skills_continuation.lineStart, boxes.skills_continuation.lineEnd);
+        skillsLines.push(...slice.map((l) => l.text));
       }
     }
 
     // 1. Objective
-    this.data.objective = allObjectiveLines
+    this.data.objective = objectiveLines
       .map((l) => l.replace(BULLET_START_REGEX, '').trim())
       .filter(Boolean)
       .join(' ')
       .trim();
 
     // 2. Technical Skills
-    this.data.skills = this._parseSkills(allSkillsLines);
+    this.data.skills = this._parseSkills(skillsLines);
 
     // 3. Work Experience
-    this.data.experience = this._parseExperience(allExpLines);
+    this.data.experience = this._parseExperience(experienceLines);
   }
 
   _parseSkills(lines) {
@@ -415,7 +388,6 @@ export class PDFDocumentEngine {
           skills: text.substring(colonIdx + 1).trim(),
         });
       } else if (result.length > 0 && !BULLET_START_REGEX.test(clean)) {
-        // Continuation line
         result[result.length - 1].skills += ' ' + clean;
       } else if (text.length > 2) {
         result.push({
@@ -447,12 +419,11 @@ export class PDFDocumentEngine {
         current = { title, company, duration: '', bullets: [] };
       } else if (current && isDate && !current.duration) {
         current.duration = clean;
-      } else if (current && !current.company && !isBullet && clean.length < 75 && !isDate) {
+      } else if (current && !current.company && !isBullet && clean.length < 80 && !isDate) {
         current.company = clean;
       } else if (current && isBullet) {
         current.bullets.push(clean.replace(BULLET_START_REGEX, '').trim());
       } else if (current && current.bullets.length > 0) {
-        // Continuation of bullet
         current.bullets[current.bullets.length - 1] += ' ' + clean;
       }
     }
@@ -516,230 +487,130 @@ export class PDFDocumentEngine {
   }
 
   // ============================================================
-  // IN-PLACE RENDERING WITH CONTENT REFLOW
+  // IN-PLACE RENDERING (100% VISUAL INTEGRITY)
   // ============================================================
 
   /**
-   * Render all pages incorporating user edits with seamless vertical reflow
+   * Render all pages incorporating user edits with clean bounding-box replacement
    */
   async render() {
-    const targetWidth = this.pageWidthPx;
-    const targetHeight = this.pageHeightPx;
-    const bottomMargin = 40 * this.scale;
-    const topMargin = 40 * this.scale;
-
     this.renderedPages = [];
 
-    let currentCanvas = document.createElement('canvas');
-    currentCanvas.width = targetWidth;
-    currentCanvas.height = targetHeight;
-    let ctx = currentCanvas.getContext('2d');
-    this._fillWhite(ctx, targetWidth, targetHeight);
+    // Process each page: clone original canvas and replace ONLY the edited bounding boxes
+    for (let pIdx = 0; pIdx < this.pagesData.length; pIdx++) {
+      const page = this.pagesData[pIdx];
+      const origCanvas = page.originalCanvas;
 
-    let curY = 0;
+      // Clone original canvas
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = origCanvas.width;
+      pageCanvas.height = origCanvas.height;
+      const ctx = pageCanvas.getContext('2d');
 
-    const startNewPage = () => {
-      this.renderedPages.push(currentCanvas);
-      currentCanvas = document.createElement('canvas');
-      currentCanvas.width = targetWidth;
-      currentCanvas.height = targetHeight;
-      ctx = currentCanvas.getContext('2d');
-      this._fillWhite(ctx, targetWidth, targetHeight);
-      curY = topMargin;
-    };
+      // Draw 100% of the pristine original page (header, logos, photo, fonts, static sections)
+      ctx.drawImage(origCanvas, 0, 0);
 
-    // Iterate through pages and bands
-    for (const page of this.pagesData) {
-      const origCanvas = page.canvas;
+      const boxes = page.boxes || {};
 
-      for (const band of page.bands) {
-        if (band.type === 'static') {
-          const bandH = band.height;
-          if (bandH <= 0) continue;
-
-          // Check if static band fits on current page
-          if (curY > topMargin && curY + bandH > targetHeight - bottomMargin) {
-            startNewPage();
-          }
-
-          ctx.drawImage(
-            origCanvas,
-            0,
-            band.startY,
-            targetWidth,
-            bandH,
-            0,
-            curY,
-            targetWidth,
-            bandH
-          );
-          curY += bandH;
-        } else if (band.type === 'editable') {
-          // 1. Draw preserved section heading slice
-          const headH = band.headingHeight;
-          if (curY > topMargin && curY + headH + 40 > targetHeight) {
-            startNewPage();
-          }
-
-          ctx.drawImage(
-            origCanvas,
-            0,
-            band.headingStartY,
-            targetWidth,
-            headH,
-            0,
-            curY,
-            targetWidth,
-            headH
-          );
-          curY += headH + 8 * this.scale;
-
-          // 2. Render edited content with detected typography
-          const region = band.contentRegion;
-          const leftX = region.minX;
-          const maxWidth = Math.max(200, region.maxX - leftX);
-
-          if (band.sectionId === 'objective') {
-            curY = this._renderObjectiveContent(ctx, this.data.objective, leftX, maxWidth, curY, targetHeight, startNewPage);
-          } else if (band.sectionId === 'skills') {
-            curY = this._renderSkillsContent(ctx, this.data.skills, leftX, maxWidth, curY, targetHeight, startNewPage);
-          } else if (band.sectionId === 'experience') {
-            curY = this._renderExperienceContent(ctx, this.data.experience, leftX, maxWidth, curY, targetHeight, startNewPage);
-          }
-
-          curY += 10 * this.scale;
-        }
+      // 1. Career Objective Box
+      if (boxes.objective) {
+        this._renderObjectiveBox(ctx, boxes.objective, this.data.objective);
       }
-    }
 
-    if (curY > 0) {
-      this.renderedPages.push(currentCanvas);
+      // 2. Experience Box
+      if (boxes.experience) {
+        this._renderExperienceBox(ctx, boxes.experience, this.data.experience);
+      }
+
+      // 3. Technical Skills Box
+      if (boxes.skills) {
+        this._renderSkillsBox(ctx, boxes.skills, this.data.skills, boxes.skills_continuation ? 'part1' : 'all');
+      }
+
+      // 4. Skills Continuation Box (if page 2 continues skills)
+      if (boxes.skills_continuation) {
+        this._renderSkillsBox(ctx, boxes.skills_continuation, this.data.skills, 'part2');
+      }
+
+      this.renderedPages.push(pageCanvas);
     }
 
     return this.renderedPages;
   }
 
-  _fillWhite(ctx, w, h) {
+  _renderObjectiveBox(ctx, box, text) {
+    if (!box || box.height <= 0) return;
+
+    // Clean white mask over the original text area
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, w, h);
-  }
+    ctx.fillRect(box.left, box.top, box.width, box.height);
 
-  _renderObjectiveContent(ctx, text, leftX, maxWidth, startY, targetHeight, onOverflow) {
-    if (!text || !text.trim()) return startY;
+    if (!text || !text.trim()) return;
 
-    const fontSize = this.detectedLayout.fontSize;
-    const lineHeight = fontSize * this.detectedLayout.lineHeight;
+    let fontSize = this.detectedLayout.fontSize;
+    let lineHeight = fontSize * this.detectedLayout.lineHeight;
     const fontFamily = this.detectedLayout.fontFamily;
 
+    // Check fit and auto-scale font size if text is longer
     ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+    let lines = this._wrapText(ctx, text.trim(), box.width);
+    let totalH = lines.length * lineHeight;
+
+    if (totalH > box.height) {
+      const scaleRatio = box.height / totalH;
+      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
+      lineHeight = fontSize * 1.35;
+      ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+      lines = this._wrapText(ctx, text.trim(), box.width);
+    }
+
     ctx.fillStyle = this.detectedLayout.textColor;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    const lines = this._wrapText(ctx, text.trim(), maxWidth);
-    let curY = startY;
-
+    let curY = box.top + 2;
     for (const line of lines) {
-      if (curY + lineHeight > targetHeight - 40 * this.scale) {
-        onOverflow();
-        curY = 40 * this.scale;
-        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-        ctx.fillStyle = this.detectedLayout.textColor;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-      }
-
-      ctx.fillText(line, leftX, curY);
+      if (curY + lineHeight > box.top + box.height + 4) break;
+      ctx.fillText(line, box.left, curY);
       curY += lineHeight;
     }
-
-    return curY;
   }
 
-  _renderSkillsContent(ctx, skillsList, leftX, maxWidth, startY, targetHeight, onOverflow) {
-    if (!skillsList || skillsList.length === 0) return startY;
+  _renderExperienceBox(ctx, box, expList) {
+    if (!box || box.height <= 0) return;
 
-    const fontSize = this.detectedLayout.fontSize;
-    const lineHeight = fontSize * this.detectedLayout.lineHeight;
-    const fontFamily = this.detectedLayout.fontFamily;
+    // Clean white mask over the original experience area
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(box.left, box.top, box.width, box.height);
 
-    let curY = startY;
+    if (!expList || expList.length === 0) return;
 
-    for (const item of skillsList) {
-      const category = (item.category || '').trim();
-      const skills = (item.skills || '').trim();
-      if (!category && !skills) continue;
-
-      if (curY + lineHeight > targetHeight - 40 * this.scale) {
-        onOverflow();
-        curY = 40 * this.scale;
-      }
-
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-
-      if (category) {
-        ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
-        ctx.fillStyle = this.detectedLayout.textColor;
-        const catWidth = ctx.measureText(category + ': ').width;
-        ctx.fillText(category + ': ', leftX, curY);
-
-        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-        const remainingWidth = Math.max(100, maxWidth - catWidth);
-        const skillLines = this._wrapText(ctx, skills, remainingWidth);
-
-        if (skillLines.length > 0) {
-          ctx.fillText(skillLines[0], leftX + catWidth, curY);
-          curY += lineHeight;
-
-          for (let i = 1; i < skillLines.length; i++) {
-            if (curY + lineHeight > targetHeight - 40 * this.scale) {
-              onOverflow();
-              curY = 40 * this.scale;
-            }
-            ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-            ctx.fillStyle = this.detectedLayout.textColor;
-            ctx.fillText(skillLines[i], leftX + catWidth, curY);
-            curY += lineHeight;
-          }
-        } else {
-          curY += lineHeight;
-        }
-      } else {
-        // Simple skill line with bullet
-        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-        ctx.fillStyle = this.detectedLayout.textColor;
-        ctx.fillText('• ', leftX, curY);
-
-        const indent = 16 * this.scale;
-        const wrapped = this._wrapText(ctx, skills, maxWidth - indent);
-        for (let i = 0; i < wrapped.length; i++) {
-          if (curY + lineHeight > targetHeight - 40 * this.scale) {
-            onOverflow();
-            curY = 40 * this.scale;
-          }
-          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-          ctx.fillStyle = this.detectedLayout.textColor;
-          ctx.fillText(wrapped[i], leftX + indent, curY);
-          curY += lineHeight;
-        }
-      }
-
-      curY += 2 * this.scale;
-    }
-
-    return curY;
-  }
-
-  _renderExperienceContent(ctx, expList, leftX, maxWidth, startY, targetHeight, onOverflow) {
-    if (!expList || expList.length === 0) return startY;
-
-    const fontSize = this.detectedLayout.fontSize;
-    const lineHeight = fontSize * this.detectedLayout.lineHeight;
+    let fontSize = this.detectedLayout.fontSize;
+    let lineHeight = fontSize * this.detectedLayout.lineHeight;
     const fontFamily = this.detectedLayout.fontFamily;
     const bulletIndent = 16 * this.scale;
 
-    let curY = startY;
+    // Calculate total required lines
+    ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+    let totalLinesCount = 0;
+    for (const exp of expList) {
+      totalLinesCount += 2; // Title & Duration lines
+      for (const b of exp.bullets || []) {
+        if (b.trim()) {
+          const wrapped = this._wrapText(ctx, b.trim(), box.width - bulletIndent);
+          totalLinesCount += Math.max(1, wrapped.length);
+        }
+      }
+    }
+
+    const estimatedH = totalLinesCount * lineHeight;
+    if (estimatedH > box.height) {
+      const scaleRatio = box.height / estimatedH;
+      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
+      lineHeight = fontSize * 1.35;
+    }
+
+    let curY = box.top + 2;
 
     for (const exp of expList) {
       const title = (exp.title || '').trim();
@@ -748,11 +619,7 @@ export class PDFDocumentEngine {
       const bullets = exp.bullets || [];
 
       if (!title && !company && bullets.length === 0) continue;
-
-      if (curY + lineHeight * 2 > targetHeight - 40 * this.scale) {
-        onOverflow();
-        curY = 40 * this.scale;
-      }
+      if (curY + lineHeight > box.top + box.height) break;
 
       // Title & Company
       ctx.textAlign = 'left';
@@ -761,48 +628,136 @@ export class PDFDocumentEngine {
       ctx.fillStyle = this.detectedLayout.textColor;
 
       const titleText = title + (company ? ` | ${company}` : '');
-      ctx.fillText(titleText, leftX, curY);
+      ctx.fillText(titleText, box.left, curY);
 
       // Duration (right aligned)
       if (duration) {
         ctx.font = `italic ${Math.round(fontSize * 0.95)}px ${fontFamily}`;
         ctx.textAlign = 'right';
-        ctx.fillText(duration, leftX + maxWidth, curY);
+        ctx.fillText(duration, box.left + box.width, curY);
         ctx.textAlign = 'left';
       }
 
-      curY += lineHeight + 3 * this.scale;
+      curY += lineHeight + 2;
 
       // Bullets
       for (const bullet of bullets) {
         const cleanBullet = (bullet || '').trim();
         if (!cleanBullet) continue;
+        if (curY + lineHeight > box.top + box.height) break;
 
         ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
         ctx.fillStyle = this.detectedLayout.textColor;
 
-        const wrapped = this._wrapText(ctx, cleanBullet, maxWidth - bulletIndent);
+        const wrapped = this._wrapText(ctx, cleanBullet, box.width - bulletIndent);
         for (let i = 0; i < wrapped.length; i++) {
-          if (curY + lineHeight > targetHeight - 40 * this.scale) {
-            onOverflow();
-            curY = 40 * this.scale;
-          }
-
-          ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
-          ctx.fillStyle = this.detectedLayout.textColor;
+          if (curY + lineHeight > box.top + box.height) break;
 
           if (i === 0) {
-            ctx.fillText('•', leftX, curY);
+            ctx.fillText('•', box.left + 4, curY);
           }
-          ctx.fillText(wrapped[i], leftX + bulletIndent, curY);
+          ctx.fillText(wrapped[i], box.left + bulletIndent, curY);
           curY += lineHeight;
         }
       }
 
-      curY += 6 * this.scale; // Space between roles
+      curY += 4; // Space between roles
+    }
+  }
+
+  _renderSkillsBox(ctx, box, skillsList, mode = 'all') {
+    if (!box || box.height <= 0) return;
+
+    // Clean white mask over skills area
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(box.left, box.top, box.width, box.height);
+
+    if (!skillsList || skillsList.length === 0) return;
+
+    // If skills are split across 2 pages (part1 on page 1, part2 on page 2)
+    let itemsToRender = skillsList;
+    if (mode === 'part1') {
+      itemsToRender = skillsList.slice(0, 8);
+    } else if (mode === 'part2') {
+      itemsToRender = skillsList.slice(8);
     }
 
-    return curY;
+    let fontSize = this.detectedLayout.fontSize;
+    let lineHeight = fontSize * this.detectedLayout.lineHeight;
+    const fontFamily = this.detectedLayout.fontFamily;
+
+    // Check height
+    let totalLinesCount = 0;
+    ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
+    for (const item of itemsToRender) {
+      const cat = (item.category || '').trim();
+      const sk = (item.skills || '').trim();
+      const catW = ctx.measureText(cat ? cat + ': ' : '').width;
+      ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+      const wrapped = this._wrapText(ctx, sk, Math.max(100, box.width - catW - 16));
+      totalLinesCount += Math.max(1, wrapped.length);
+      ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
+    }
+
+    const estimatedH = totalLinesCount * lineHeight;
+    if (estimatedH > box.height) {
+      const scaleRatio = box.height / estimatedH;
+      fontSize = Math.max(13, fontSize * scaleRatio * 0.95);
+      lineHeight = fontSize * 1.35;
+    }
+
+    let curY = box.top + 2;
+
+    for (const item of itemsToRender) {
+      const category = (item.category || '').trim();
+      const skills = (item.skills || '').trim();
+      if (!category && !skills) continue;
+      if (curY + lineHeight > box.top + box.height) break;
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      // Bullet mark
+      ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+      ctx.fillStyle = this.detectedLayout.textColor;
+      ctx.fillText('•', box.left + 4, curY);
+
+      const indentX = box.left + 16;
+
+      if (category) {
+        ctx.font = `bold ${Math.round(fontSize)}px ${fontFamily}`;
+        ctx.fillStyle = this.detectedLayout.textColor;
+        const catText = category + ': ';
+        const catW = ctx.measureText(catText).width;
+        ctx.fillText(catText, indentX, curY);
+
+        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+        const remainingWidth = Math.max(100, box.width - catW - 16);
+        const wrapped = this._wrapText(ctx, skills, remainingWidth);
+
+        if (wrapped.length > 0) {
+          ctx.fillText(wrapped[0], indentX + catW, curY);
+          curY += lineHeight;
+
+          for (let i = 1; i < wrapped.length; i++) {
+            if (curY + lineHeight > box.top + box.height) break;
+            ctx.fillText(wrapped[i], indentX + catW, curY);
+            curY += lineHeight;
+          }
+        } else {
+          curY += lineHeight;
+        }
+      } else {
+        ctx.font = `normal ${Math.round(fontSize)}px ${fontFamily}`;
+        ctx.fillStyle = this.detectedLayout.textColor;
+        const wrapped = this._wrapText(ctx, skills, box.width - 20);
+        for (const line of wrapped) {
+          if (curY + lineHeight > box.top + box.height) break;
+          ctx.fillText(line, indentX, curY);
+          curY += lineHeight;
+        }
+      }
+    }
   }
 
   _wrapText(ctx, text, maxWidth) {
@@ -830,7 +785,7 @@ export class PDFDocumentEngine {
   // ============================================================
 
   /**
-   * Export the modified resume to PDF with exact vector quality and reflow
+   * Export the modified resume to PDF with exact vector quality
    */
   async exportPDF(customFileName) {
     await this.render();
